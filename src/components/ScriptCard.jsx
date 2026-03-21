@@ -1,23 +1,17 @@
-import ScriptBox from "./ScriptBox";
+import ScriptBlock from './ScriptBlock'
 
-const ScriptCard = ({ category }) => {
-  const categoryId = category.category
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[()&]/g, "");
-
+export default function ScriptCard({ script }) {
   return (
-    <>
-      <h3 id={`category-${categoryId}`}>{category.category}</h3>
-
-      {category.scripts.map((script) => (
-        <div className="script-box" key={script.id}>
-          <div className="label">{script.label}</div>
-          <ScriptBox script={{ ...script, title: null }} />
-        </div>
+    <div className="bg-gray-800 rounded-xl p-5 mb-4">
+      <span className="bg-blue-900 text-blue-200 text-xs font-semibold px-3 py-1 rounded-full inline-block mb-3">
+        {script.title}
+      </span>
+      {script.alert && (
+        <ScriptBlock block={{ type: 'alert', text: typeof script.alert === 'string' ? script.alert : script.alert.text }} />
+      )}
+      {script.content.map((block, i) => (
+        <ScriptBlock key={i} block={block} />
       ))}
-    </>
-  );
-};
-
-export default ScriptCard;
+    </div>
+  )
+}
