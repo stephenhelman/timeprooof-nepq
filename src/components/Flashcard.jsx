@@ -10,7 +10,7 @@ export default function FlashCard({ card }) {
 
   return (
     <div
-      className="cursor-pointer bg-gray-800 rounded-xl p-6 min-h-50 relative"
+      className="cursor-pointer bg-gray-800 rounded-xl p-6 relative"
       style={{ perspective: '1000px' }}
       onClick={() => setFlipped(f => !f)}
     >
@@ -19,14 +19,13 @@ export default function FlashCard({ card }) {
           transition: 'transform 0.5s',
           transformStyle: 'preserve-3d',
           transform: flipped ? 'rotateY(180deg)' : '',
-          position: 'relative',
-          minHeight: '152px',
+          display: 'grid',
         }}
       >
         {/* Front */}
         <div
-          style={{ backfaceVisibility: 'hidden' }}
-          className="flex flex-col justify-between h-full"
+          style={{ gridArea: '1/1', backfaceVisibility: 'hidden' }}
+          className="flex flex-col justify-between"
         >
           <p className="text-white font-semibold text-base">{card.question}</p>
           <p className="text-gray-500 text-xs mt-4">Click to flip</p>
@@ -35,10 +34,9 @@ export default function FlashCard({ card }) {
         {/* Back */}
         <div
           style={{
+            gridArea: '1/1',
             backfaceVisibility: 'hidden',
             transform: 'rotateY(180deg)',
-            position: 'absolute',
-            inset: 0,
           }}
         >
           <ListTag className={listClass}>

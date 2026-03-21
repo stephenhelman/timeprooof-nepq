@@ -1235,6 +1235,112 @@ export const trainingData = {
             },
           ],
         },
+        // ── Our Installers — 3-part differentiator ──────────────────
+        {
+          id: "fc-diff-001",
+          question: "What are the 3 attributes of TIMEPROOF installers?",
+          ordered: true,
+          answer: [
+            {
+              term: "Insured",
+              detail:
+                "TIMEPROOF carries proper insurance so the homeowner is never liable for anything that happens on their roof. Every roofer is harnessed in — OSHA-compliant, no shortcuts.",
+            },
+            {
+              term: "Factory Trained",
+              detail:
+                "Installers are trained by Owens Corning directly — not the TIMEPROOF way, the Owens Corning way. They follow a process that comes straight from the factory that designed the system. The only way to guarantee a long-standing roof with a long-standing warranty.",
+            },
+            {
+              term: "Detail Oriented",
+              detail:
+                "Project managers and crews pay attention to every detail to maximize the life of the roof. Property is left exactly as it was when they arrived — or better.",
+            },
+          ],
+        },
+
+        // ── Owens Corning Preferred Contractor ──────────────────────
+        {
+          id: "fc-diff-002",
+          question:
+            "What is Owens Corning Preferred Contractor status and why does it matter to the homeowner?",
+          ordered: false,
+          answer: [
+            {
+              term: "What it means",
+              detail:
+                "TIMEPROOF earned Preferred Contractor status by consistently meeting Owens Corning's installation standards across every project.",
+            },
+            {
+              term: "How it's verified",
+              detail:
+                "Owens Corning performs unannounced secret shops at TIMEPROOF installations to verify that the job is being done exactly the way they intended — no exceptions.",
+            },
+            {
+              term: "What the homeowner gets",
+              detail:
+                "Access to products and warranties that are not available through a local home improvement store. You cannot buy this level of protection off the shelf — it only comes through a contractor who has earned the designation.",
+            },
+            {
+              term: "The bottom line",
+              detail:
+                "When Owens Corning backs your installer, the manufacturer and the contractor are both standing behind your roof. That is a level of protection most homeowners never get.",
+            },
+          ],
+        },
+
+        // ── Factory Trained vs. Self Trained ────────────────────────
+        {
+          id: "fc-diff-003",
+          question:
+            "Why does factory-trained installation matter vs. a contractor who trains their own crew?",
+          ordered: false,
+          answer: [
+            {
+              term: "Self-trained crews",
+              detail:
+                "Follow a process the contractor invented. No external accountability. Warranty claims can be denied if installation doesn't meet manufacturer specs.",
+            },
+            {
+              term: "Factory-trained crews",
+              detail:
+                "Follow the process Owens Corning designed. Installation meets manufacturer specs by definition. Warranties are fully backed because the work was done the way the factory intended.",
+            },
+            {
+              term: "The key phrase",
+              detail:
+                "'They don't follow a TIMEPROOF process — they follow an Owens Corning process.' That one line separates us from every other roofer the homeowner has talked to.",
+            },
+          ],
+        },
+
+        // ── Warranties — Platinum anchor ────────────────────────────
+        {
+          id: "fc-diff-004",
+          question:
+            "What are the Platinum package warranty terms and how do you sell them?",
+          ordered: false,
+          answer: [
+            {
+              term: "50-year product warranty",
+              detail: "Owens Corning stands behind the materials for 50 years.",
+            },
+            {
+              term: "Limited lifetime product warranty",
+              detail: "Manufacturer's lifetime coverage on the product itself.",
+            },
+            {
+              term: "10-year installation warranty",
+              detail:
+                "TIMEPROOF stands behind the crew's work for 10 years. If anything goes wrong with the installation, they come back and make it right — no questions asked.",
+            },
+            {
+              term: "The selling point",
+              detail:
+                "Our crews are trained to the highest standard — but they are human. The 10-year install warranty is how TIMEPROOF proves they stand behind their people. Most roofing companies offer nothing like this. Only available on Platinum.",
+            },
+          ],
+        },
       ],
       scripts: [
         {
@@ -1555,6 +1661,523 @@ export const trainingData = {
             },
           ],
         },
+        {
+          id: "sc-our-installers",
+          title: "Our Installers",
+          alert: null,
+          content: [
+            {
+              type: "cue",
+              text: "INSURED",
+            },
+            {
+              type: "dialogue",
+              lines: [
+                `"We carry the proper insurance to ensure you and your property are never liable for any mistakes that could happen on your roof."`,
+                `"Every roofer is harnessed in — OSHA-compliant safety protocols, no shortcuts."`,
+              ],
+            },
+            {
+              type: "cue",
+              text: "FACTORY TRAINED",
+            },
+            {
+              type: "dialogue",
+              lines: [
+                `"Our crews are not trained the TIMEPROOF way — they are trained the Owens Corning way."`,
+                `"Owens Corning trains our installers directly to make sure every installation meets their standards, their process, their way."`,
+                `"This is the only way to guarantee a long-standing roof with a long-standing warranty."`,
+              ],
+            },
+            {
+              type: "cue",
+              text: "DETAIL ORIENTED",
+            },
+            {
+              type: "dialogue",
+              lines: [
+                `"Our project managers and crews pay attention to every detail so you get the most life out of your roof."`,
+                `"We make sure your property looks exactly the same as when we arrived on site."`,
+              ],
+            },
+          ],
+        },
+
+        // ── 16. Preferred Contractor + Owens Corning Secret Shop ────
+        {
+          id: "sc-preferred-contractor",
+          title: "Preferred Contractor",
+          alert: {
+            text: "This flows naturally from Our Installers — do not treat it as a separate topic. It is the payoff to the factory-trained story.",
+          },
+          content: [
+            {
+              type: "dialogue",
+              lines: [
+                `"Because our installers follow the Owens Corning process so precisely, Owens Corning actually does secret shops at our installations."`,
+                `"They send someone out — unannounced — to verify that we are doing the job exactly the way they intended."`,
+              ],
+            },
+            {
+              type: "cue",
+              text: "The payoff",
+            },
+            {
+              type: "dialogue",
+              lines: [
+                `"We did such a great job consistently meeting their standards that we became an Owens Corning Preferred Contractor."`,
+                `"That status gives us access to products and warranties that are simply not available if you walk into a local home improvement store and shop."`,
+                `"You cannot get this level of protection off the shelf — it only comes through a contractor who has earned that designation."`,
+              ],
+            },
+          ],
+        },
+
+        // ── 17. Warranties ───────────────────────────────────────────
+        {
+          id: "sc-warranties",
+          title: "Warranties",
+          alert: {
+            text: "Push Platinum. The 10-year install warranty is the closer — it is what separates Platinum from everything else on the market.",
+          },
+          content: [
+            {
+              type: "dialogue",
+              lines: [
+                `"TIMEPROOF offers one of the best warranty packages in the industry — and it comes down to the package you choose."`,
+              ],
+            },
+            {
+              type: "cue",
+              text: "Platinum Package — the full protection",
+            },
+            {
+              type: "dialogue",
+              lines: [
+                `"The Platinum package gives you a 50-year product warranty, a limited lifetime product warranty, and a 10-year installation warranty."`,
+                `"Our crews are trained to the highest standard — but they are human."`,
+                `"We stand behind their work. If anything goes wrong with the installation in the first 10 years, we come back and make it right. No questions asked."`,
+                `"That 10-year install warranty is not something you will find from most roofing companies — and it is only available on Platinum."`,
+              ],
+            },
+            {
+              type: "note",
+              text: "Elite and Essential warranty details — to be added. Stick with Platinum until further notice.",
+            },
+          ],
+        },
+
+        // ── 18. What to Expect ───────────────────────────────────────
+        {
+          id: "sc-what-to-expect",
+          title: "What to Expect",
+          alert: null,
+          content: [
+            {
+              type: "dialogue",
+              lines: [
+                `"Let me walk you through exactly what happens from the moment we schedule your project to the day we wrap up."`,
+              ],
+            },
+            {
+              type: "cue",
+              text: "Before Installation Day",
+            },
+            {
+              type: "dialogue",
+              lines: [
+                `"A trailer will be delivered to your home prior to or with the installers on the first day."`,
+                `"Shingles may arrive a few days before or day-of — either way, we will coordinate with you."`,
+                `"Just let us know about any pets and gate access so we can plan accordingly."`,
+              ],
+            },
+            {
+              type: "cue",
+              text: "During Installation",
+            },
+            {
+              type: "dialogue",
+              lines: [
+                `"We recommend removing any valuables from exterior walls — there is vibration involved and we want to protect everything."`,
+                `"Gates will be kept closed and pets secured if needed."`,
+              ],
+            },
+            {
+              type: "cue",
+              text: "Final Day",
+            },
+            {
+              type: "dialogue",
+              lines: [
+                `"Depending on the size of your roof and weather, the project may run into a second day — that is completely normal."`,
+                `"On the final day, your lead installer or project manager will do a full walkthrough with you to make sure you are satisfied with every aspect of the project."`,
+                `"Final payment is collected at that walkthrough, and the trailer is removed during cleanup."`,
+              ],
+            },
+          ],
+        },
+
+        // ── 19. Respect for Property (Your Home is Our Home) ────────
+        {
+          id: "sc-respect-property",
+          title: "Respect for Your Property",
+          alert: {
+            text: "This is the final differentiator before the pre-close. Most roofing companies say nothing about this. Let it land.",
+          },
+          content: [
+            {
+              type: "dialogue",
+              lines: [
+                `"At TIMEPROOF we understand that this is not just a job site — it is your home."`,
+                `"This is why we take every precaution to ensure a safe, clean, and well-maintained outcome."`,
+              ],
+            },
+            {
+              type: "cue",
+              text: "SAFE",
+            },
+            {
+              type: "dialogue",
+              lines: [
+                `"Every roofer is harnessed into your roof — no exceptions."`,
+                `"OSHA-compliant safety protocols across every single project."`,
+              ],
+            },
+            {
+              type: "cue",
+              text: "CLEAN",
+            },
+            {
+              type: "dialogue",
+              lines: [
+                `"We use extra long tarps to catch debris during the strip."`,
+                `"ABC — Always Be Cleaning. Someone is always picking up on the ground."`,
+                `"A magnetic rake is passed over the entire property to catch any loose nails that escaped the tarp."`,
+              ],
+            },
+            {
+              type: "cue",
+              text: "WELL-MAINTAINED",
+            },
+            {
+              type: "dialogue",
+              lines: [
+                `"The goal is simple — we leave your property exactly the way we found it."`,
+                `"Actually, cleaner than when we started."`,
+              ],
+            },
+            {
+              type: "cue",
+              text: "Bridge to pre-close",
+            },
+            {
+              type: "dialogue",
+              lines: [
+                `"So between our products, our installation process, our warranties, and the way we treat your home — I want to ask you something before we look at numbers..."`,
+              ],
+            },
+          ],
+        },
+      ],
+    },
+
+    {
+      id: "motivate",
+      title: "Motivate — Close & Discounts",
+      trainingDay: null,
+      salesStep: 4,
+      pages: null,
+      tags: [
+        "closing",
+        "motivate",
+        "discounts",
+        "fsp",
+        "financing",
+        "pre-close",
+      ],
+      summary: [
+        "Pre-close question — gate objections before presenting price",
+        "Package presentation — show all packages at retail payment first",
+        "3-discount sequence: National 5% → Local 10% → FSP 10%",
+        "FSP = Financing Savings Promotion — last and final discount",
+        "Credit card/check exception — conditionally offer FSP with asks",
+      ],
+      flashcards: [
+        {
+          id: "fc-mot-001",
+          question:
+            "What are the 3 discounts and what order do you apply them?",
+          ordered: true,
+          answer: [
+            {
+              term: "1. National Promotion — 5%",
+              detail:
+                "Reference how they heard about you and the promotion they saw. Apply first, then show updated payments on all packages.",
+            },
+            {
+              term: "2. Local Promotion — 10%",
+              detail:
+                "After national discount is shown, offer the local promotion. Frame it as an opportunity to upgrade to the next package for roughly the same monthly payment.",
+            },
+            {
+              term: "3. FSP — Financing Savings Promotion — 10%",
+              detail:
+                "Last and final discount. Tied to using company financing. Like major retailers (Best Buy, Home Depot), 10% off for using their financing. Unsecured, no pre-payment penalties, first bill after project completion.",
+            },
+          ],
+        },
+        {
+          id: "fc-mot-002",
+          question: "What is the FSP and how do you frame it?",
+          ordered: false,
+          answer: [
+            {
+              term: "FSP = Financing Savings Promotion",
+              detail:
+                "An additional 10% off for using company financing — the last and final discount available.",
+            },
+            {
+              term: "Frame it like a major retailer",
+              detail:
+                "Best Buy, Home Depot, Lowes, Target — all offer 10% for using their financing. Customer is already conditioned for this. Use that to your advantage.",
+            },
+            {
+              term: "Key selling points",
+              detail:
+                "Unsecured financing. No pre-payment penalties. First bill not due until project is completed — customer satisfaction guaranteed before they pay.",
+            },
+          ],
+        },
+        {
+          id: "fc-mot-003",
+          question: "How do you present packages at the close?",
+          ordered: true,
+          answer: [
+            {
+              detail:
+                "Home screen populates all packages with monthly payment reflected at the bottom of each package.",
+            },
+            {
+              detail:
+                "Stay on retail payment amounts first — cover ALL packages at retail before any discounts.",
+            },
+            {
+              detail:
+                "Opening line: 'The reason we show payment amounts is because almost ALL our customers take advantage of financing — we can customize it to fit almost any budget.'",
+            },
+            {
+              detail:
+                "Only after walking all retail amounts do you begin applying discounts one at a time.",
+            },
+          ],
+        },
+        {
+          id: "fc-mot-004",
+          question:
+            "Customer wants to pay by check or credit card — do they still get FSP?",
+          ordered: false,
+          answer: [
+            {
+              term: "Yes — conditionally",
+              detail:
+                "You can make the exception IF they are moving forward while you are there and getting the project going.",
+            },
+            {
+              term: "Script",
+              detail:
+                "'I'm really not supposed to do that, but if you're going to move forward while I'm here, I'll go ahead and make the exception. In return, I'd ask for a couple of things from you.'",
+            },
+            {
+              term: "The two asks",
+              detail:
+                "1. A quick online 5-star review about your experience together today. 2. A referral — a friend or family member who may need a new roof. They receive $500 if that referral sells after the job completes.",
+            },
+          ],
+        },
+        {
+          id: "fc-mot-005",
+          question: "What is the pre-close question and why does it matter?",
+          ordered: false,
+          answer: [
+            {
+              term: "The question",
+              detail:
+                "'Other than affordability, are there any other questions or concerns that would keep you from choosing TIMEPROOF to replace your roof?'",
+            },
+            {
+              term: "Why it matters",
+              detail:
+                "Gates hidden objections before you present price. If they say no — the only remaining barrier is price, which you're about to handle with the discount sequence. If they surface another objection, address it now before money is on the table.",
+            },
+          ],
+        },
+      ],
+      scripts: [
+        // ── Card 1: Pre-Close ──────────────────────────────────
+        {
+          id: "sc-pre-close",
+          title: "Pre-Close",
+          alert: {
+            text: "Ask this before touching price. It gates hidden objections so the only remaining issue is affordability.",
+          },
+          content: [
+            {
+              type: "dialogue",
+              lines: [
+                `"Other than affordability, are there any other questions or concerns that would keep you from choosing TIMEPROOF to replace your roof?"`,
+              ],
+            },
+            {
+              type: "cue",
+              text: "If they surface an objection — handle it now",
+            },
+            {
+              type: "dialogue",
+              lines: [
+                `"Remember when we discussed cost versus value and I explained how that report is based on average companies with average warranties, average installers, and average roofing products?"`,
+                `"After everything we've discussed, you would agree that everything we do at TIMEPROOF is above average."`,
+                `"But what if I could get you our roof for what they say you should expect to pay for that average roof?"`,
+              ],
+            },
+          ],
+        },
+
+        // ── Card 2: Package Presentation & Discount Sequence ──
+        {
+          id: "sc-discount-sequence",
+          title: "Package Presentation & Discount Sequence",
+          alert: {
+            text: "Always walk ALL packages at retail first. Never lead with discounts. Let the payment amounts land before you start reducing them.",
+          },
+          content: [
+            {
+              type: "cue",
+              text: "Show all packages at retail — no discounts yet",
+            },
+            {
+              type: "dialogue",
+              lines: [
+                `"The reason that we show payment amounts on our packages is because almost ALL of our customers take advantage of our financing options."`,
+                `"We can customize them to fit almost any customer's budget."`,
+              ],
+            },
+            {
+              type: "note",
+              text: "Cover ALL payment amounts on every package at retail. Get a read on their comfort level with monthly payments before applying any discounts.",
+            },
+            {
+              type: "cue",
+              text: "Apply Discount 1 — National Promotion (5%)",
+            },
+            {
+              type: "dialogue",
+              lines: [
+                `"Remember in the beginning when I asked how you heard about us and you said it was ___ and that you saw the promotion?"`,
+                `"Let's look at what that National Promotion does to your project."`,
+              ],
+            },
+            {
+              type: "note",
+              text: "Apply the 5% discount. Return to the packages page. Cover ALL payment amounts again and highlight the difference in monthly payment.",
+            },
+            {
+              type: "cue",
+              text: "Apply Discount 2 — Local Promotion (10%)",
+            },
+            {
+              type: "dialogue",
+              lines: [
+                `"What if I could offer you a local promotion we have going that would probably allow you to upgrade from one package to the next one up — and pay close to the same monthly payment?"`,
+              ],
+            },
+            {
+              type: "note",
+              text: "Apply the 10% local promotion. Show all packages again. Let the upgrade opportunity sink in visually.",
+            },
+          ],
+        },
+
+        // ── Card 3: FSP — Financing Savings Promotion ─────────
+        {
+          id: "sc-fsp",
+          title: "FSP — Financing Savings Promotion",
+          alert: {
+            text: "This is the last and final discount. Do not offer it early. It must feel like the final unlock — just like a major retailer's store card discount.",
+          },
+          content: [
+            {
+              type: "cue",
+              text: "Frame it before you name it",
+            },
+            {
+              type: "dialogue",
+              lines: [
+                `"I know that we have talked about payments and pricing a lot — but that is what separates TIMEPROOF from the 'other guys'."`,
+                `"If you decide to move forward with us and use our financing, I can take an additional 10% off your project."`,
+                `"It's called our Financing Savings Promotion."`,
+                `"Just like major retailers — Best Buy, Home Depot, Lowes, Target — we offer our customers an additional discount for utilizing our financing."`,
+              ],
+            },
+            {
+              type: "cue",
+              text: "Address the financing terms",
+            },
+            {
+              type: "dialogue",
+              lines: [
+                `"It's unsecured financing and there are no pre-payment penalties."`,
+                `"You also don't receive the first bill until the project is completed — making sure that you are 100% satisfied before you pay a single dollar."`,
+              ],
+            },
+          ],
+        },
+
+        // ── Card 4: Credit Card / Check Exception ─────────────
+        {
+          id: "sc-cc-exception",
+          title: "Credit Card / Check Exception",
+          alert: {
+            text: "Only use this if they want to move forward but won't use financing. This is NOT the default — it is a conditional exception that requires two asks in return.",
+          },
+          content: [
+            {
+              type: "note",
+              text: "Customer wants to pay by credit card or check. You CAN still offer FSP — but only if they are committing right now, while you are there.",
+            },
+            {
+              type: "cue",
+              text: "The exception script",
+            },
+            {
+              type: "dialogue",
+              lines: [
+                `"I'm really not supposed to do that — but if you're going to move forward while I'm here and get the project going, I will go ahead and make the exception."`,
+                `"In return, I would ask for a couple of things from you."`,
+              ],
+            },
+            {
+              type: "cue",
+              text: "Ask 1 — 5-star review",
+            },
+            {
+              type: "dialogue",
+              lines: [
+                `"Can I get a quick online 5-star review from you about our experience together today?"`,
+              ],
+            },
+            {
+              type: "cue",
+              text: "Ask 2 — referral",
+            },
+            {
+              type: "dialogue",
+              lines: [
+                `"Between now and the completion of the project, do you think I could possibly get a referral from you — a friend or family member that may need a new roof as well?"`,
+                `"You'll also receive $500 if we sell that referral a new roof after your job completes."`,
+              ],
+            },
+          ],
+        },
       ],
     },
 
@@ -1646,67 +2269,6 @@ export const trainingData = {
         },
       ],
       scripts: [
-        {
-          id: "sc-home-is-our-home",
-          title: "Your Home is Our Home",
-          alert: null,
-          content: [
-            {
-              type: "dialogue",
-              lines: [
-                `"At TIMEPROOF we understand the importance of your property."`,
-                `"This is why we take every precaution to ensure a SAFE, CLEAN, and WELL-MAINTAINED outcome."`,
-              ],
-            },
-            { type: "cue", text: "SAFETY" },
-            {
-              type: "dialogue",
-              lines: [
-                `"Every roofer will be harnessed into your roof to ensure no accidents happen."`,
-                `"OSHA-compliant safety protocols — no shortcuts on safety."`,
-              ],
-            },
-            { type: "cue", text: "CLEANLINESS" },
-            {
-              type: "dialogue",
-              lines: [
-                "Extra long tarps to catch debris",
-                "ABC = Always Be Cleaning",
-                "Magnetic rake passed on property to catch any loose nails",
-              ],
-            },
-            { type: "cue", text: "RESULT" },
-            {
-              type: "dialogue",
-              lines: [
-                `"The overall goal is to make sure we leave your property the exact way it was when we arrived — actually cleaner than when we started."`,
-              ],
-            },
-          ],
-        },
-        {
-          id: "sc-final-walkthrough",
-          title: "Final Walkthrough",
-          alert: null,
-          content: [
-            {
-              type: "dialogue",
-              lines: [
-                `"At the final walkthrough the lead installer/project manager will walk through to ensure satisfaction on every project."`,
-              ],
-            },
-            { type: "cue", text: "Process" },
-            {
-              type: "dialogue",
-              lines: [
-                "1. Go over everything completed on the property",
-                "2. Check for cleanliness",
-                "3. Make sure everything is in the dumpster",
-                "4. Collect final payments due",
-              ],
-            },
-          ],
-        },
         {
           id: "sc-like-for-like",
           title: "Like-for-Like Replacement Rule",
