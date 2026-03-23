@@ -2063,7 +2063,7 @@ export const trainingData = {
             },
             {
               type: "note",
-              text: "Cover ALL payment amounts on every package at retail. Get a read on their comfort level with monthly payments before applying any discounts.",
+              text: "Cover payment amounts on Platinum and Elite at retail. Get a read on their comfort level with monthly payments before applying any discounts.",
             },
             {
               type: "cue",
@@ -2078,7 +2078,7 @@ export const trainingData = {
             },
             {
               type: "note",
-              text: "Apply the 5% discount. Return to the packages page. Cover ALL payment amounts again and highlight the difference in monthly payment.",
+              text: "Apply the 5% discount. Return to the packages page. Cover payment amounts on Platinum and Elite again and highlight the difference in monthly payment.",
             },
             {
               type: "cue",
@@ -2092,7 +2092,7 @@ export const trainingData = {
             },
             {
               type: "note",
-              text: "Apply the 10% local promotion. Show all packages again. Let the upgrade opportunity sink in visually.",
+              text: "Apply the 10% local promotion. Cover payment amounts on Platinum and Elite again. Let the upgrade opportunity sink in visually.",
             },
           ],
         },
@@ -2137,12 +2137,12 @@ export const trainingData = {
           id: "sc-cc-exception",
           title: "Credit Card / Check Exception",
           alert: {
-            text: "Only use this if they want to move forward but won't use financing. This is NOT the default — it is a conditional exception that requires two asks in return.",
+            text: "Only use this if they want to move forward but won't use financing. This is NOT the default — it is a conditional exception that requires two asks in return. They will be getting the discount regardless, but make the customer feel like they have to earn it",
           },
           content: [
             {
               type: "note",
-              text: "Customer wants to pay by credit card or check. You CAN still offer FSP — but only if they are committing right now, while you are there.",
+              text: "Customer wants to pay by credit card or check. You CAN still offer FSP — but only if they are committing right now, while you are there. They will be getting the discount regardless, but make the customer feel like they have to earn it",
             },
             {
               type: "cue",
