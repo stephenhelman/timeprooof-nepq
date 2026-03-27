@@ -10,7 +10,14 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
-*.local
+
+# Next.js
+/.next/
+/out/
+next-env.d.ts
+
+# Local env files (keep .env.example if exists)
+.env*.local
 
 # Editor directories and files
 .vscode/*
@@ -22,3 +29,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Prisma
+prisma/*.db
+.claude
