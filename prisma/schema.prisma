@@ -15,9 +15,12 @@ model User {
   email         String    @unique
   emailVerified DateTime?
   image         String?
-  role          UserRole  @default(REP)
-  branch        String?
-  createdAt     DateTime  @default(now())
+  role            UserRole  @default(REP)
+  branch          String?
+  phone           String?
+  passwordHash    String?
+  profileComplete Boolean   @default(false)
+  createdAt       DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   accounts Account[]

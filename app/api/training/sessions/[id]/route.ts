@@ -2,18 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+type RouteContext = { params: Promise<{ id: string }> };
+
+export async function GET(req: NextRequest, ctx: RouteContext) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { id } = await ctx.params;
+
   try {
     const drill = await prisma.drillSession.findFirst({
-      where: { id: params.id, userId: session.user.id },
+      where: { id, userId: session.user.id },
       include: { transcript: { orderBy: { createdAt: "asc" } } },
     });
 
@@ -28,19 +29,17 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(req: NextRequest, ctx: RouteContext) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { id } = await ctx.params;
+
   try {
-    // Verify ownership
     const existing = await prisma.drillSession.findFirst({
-      where: { id: params.id, userId: session.user.id },
+      where: { id, userId: session.user.id },
     });
 
     if (!existing) {
@@ -50,11 +49,10 @@ export async function PATCH(
     const body = await req.json();
     const { message, debrief, status } = body;
 
-    // Save a single message
     if (message) {
       await prisma.message.create({
         data: {
-          sessionId: params.id,
+          sessionId: id,
           role: message.role,
           content: message.content,
           hint: message.hint,
@@ -63,10 +61,9 @@ export async function PATCH(
       });
     }
 
-    // Complete session with debrief
     if (debrief || status) {
       await prisma.drillSession.update({
-        where: { id: params.id },
+        where: { id },
         data: {
           ...(status === "COMPLETED" && {
             status: "COMPLETED",
@@ -91,18 +88,17 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(req: NextRequest, ctx: RouteContext) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { id } = await ctx.params;
+
   try {
     await prisma.drillSession.updateMany({
-      where: { id: params.id, userId: session.user.id },
+      where: { id, userId: session.user.id },
       data: { status: "ABANDONED" },
     });
 

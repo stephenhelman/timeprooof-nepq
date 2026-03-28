@@ -1,24 +1,31 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log("Seeding database...");
 
-  // Admin user
+  const adminEmail =
+    process.env.ADMIN_EMAIL || "stephen.helman@timeproofusa.com";
+  const adminPassword = process.env.ADMIN_PASSWORD || "Gjallarhorn2.0";
+  const adminHash = await bcrypt.hash(adminPassword, 12);
+
   const admin = await prisma.user.upsert({
-    where: { email: "admin@timeproofusa.com" },
+    where: { email: adminEmail },
     update: {},
     create: {
-      email: "admin@timeproofusa.com",
-      name: "Admin User",
+      email: adminEmail,
+      name: "Admin",
       role: "ADMIN",
       branch: "El Paso",
+      passwordHash: adminHash,
+      profileComplete: true,
     },
   });
   console.log("Created admin:", admin.email);
 
-  // Rep user
+  const repHash = await bcrypt.hash("timeproof2024", 12);
   const rep = await prisma.user.upsert({
     where: { email: "rep@timeproofusa.com" },
     update: {},
@@ -27,6 +34,8 @@ async function main() {
       name: "Test Rep",
       role: "REP",
       branch: "El Paso",
+      passwordHash: repHash,
+      profileComplete: true,
     },
   });
   console.log("Created rep:", rep.email);

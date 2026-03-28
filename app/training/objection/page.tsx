@@ -11,6 +11,7 @@ import { transcribeAudio, callClaude, speakText, createSession, saveMessage, com
 import { homeownerSystemPrompt, coachHintPrompt, debriefPrompt } from "@/lib/prompts";
 import type { TrainingMode, Intensity, ChatMessage, DebriefResult, DrillScenario } from "@/lib/types";
 import { ChevronDown, ChevronUp, Type, Mic } from "lucide-react";
+import TTSProviderPicker from "@/components/training/TTSProviderPicker";
 
 type Screen = "config" | "drill" | "debrief";
 
@@ -94,7 +95,7 @@ export default function ObjectionDrillPage() {
       });
 
       const opening = await callClaude(
-        [{ role: "user", content: "Hello, come on in." }],
+        [{ role: "user", content: "So based on everything I showed you up there today, I'd love to get the paperwork started and get this taken care of for you. What do you think?" }],
         system
       );
 
@@ -193,10 +194,12 @@ export default function ObjectionDrillPage() {
 
       const raw = await callClaude(
         [{ role: "user", content: "Score this drill." }],
-        system
+        system,
+        1024
       );
 
-      const result: DebriefResult = JSON.parse(raw);
+      const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
+      const result: DebriefResult = JSON.parse(cleaned);
       await completeSession(sessionId, result);
       setDebrief(result);
       setScreen("debrief");
@@ -469,6 +472,7 @@ export default function ObjectionDrillPage() {
           {canDebrief ? "Debrief →" : `Debrief (${4 - userMessageCount} more exchanges)`}
         </button>
       </div>
+      <TTSProviderPicker />
     </div>
   );
 }

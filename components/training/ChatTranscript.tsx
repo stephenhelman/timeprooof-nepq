@@ -58,6 +58,11 @@ export default function ChatTranscript({ messages }: ChatTranscriptProps) {
                   <p className="text-xs text-gray-400 mb-1 font-medium">Homeowner</p>
                 )}
                 <p>{msg.content}</p>
+                {process.env.NODE_ENV === "development" && msg.role === "assistant" && (
+                  <div style={{ fontSize: 9, color: "#aaa", marginTop: 3 }}>
+                    via {typeof window !== "undefined" ? localStorage.getItem("tp_tts_provider") || "elevenlabs" : "elevenlabs"}
+                  </div>
+                )}
               </div>
             </div>
 

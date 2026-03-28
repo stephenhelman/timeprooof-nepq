@@ -14,3 +14,30 @@
 html {
   scroll-behavior: smooth;
 }
+
+/* Prevent horizontal overflow on mobile */
+body {
+  overflow-x: hidden;
+}
+
+/* Fade-in animation for coach hints */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.25s ease forwards;
+}
+
+/* Ensure touch targets meet minimum size */
+button, a, input[type="submit"] {
+  min-height: 44px;
+}
+
+/* Mic button override — must stay 80px */
+.mic-button {
+  min-height: 80px !important;
+  width: 80px !important;
+  height: 80px !important;
+}

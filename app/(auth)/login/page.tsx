@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/training";
@@ -23,6 +24,8 @@ export default function LoginPage() {
       password,
       redirect: false,
     });
+
+    console.log(result);
 
     setLoading(false);
 
@@ -110,10 +113,20 @@ export default function LoginPage() {
         </form>
 
         <p className="text-center text-xs text-gray-500 mt-6">
-          Dev password:{" "}
-          <span className="font-mono text-gray-400">timeproof2024</span>
+          Don&apos;t have an account?{" "}
+          <Link href="/register" className="text-gray-400 hover:text-white">
+            Register
+          </Link>
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="w-full max-w-md px-4 animate-pulse" />}>
+      <LoginForm />
+    </Suspense>
   );
 }

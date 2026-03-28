@@ -1,6 +1,7 @@
 import NextAuth, { type DefaultSession } from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import Credentials from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
 declare module "next-auth" {
@@ -9,12 +10,14 @@ declare module "next-auth" {
       id: string;
       role: string;
       branch: string | null;
+      profileComplete: boolean;
     } & DefaultSession["user"];
   }
 
   interface User {
     role?: string;
     branch?: string | null;
+    profileComplete?: boolean;
   }
 }
 
@@ -31,24 +34,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        // Dev credentials provider: any email + password "timeproof2024"
-        if (credentials.password !== "timeproof2024") return null;
-
         const email = credentials.email as string;
+        const password = credentials.password as string;
 
-        // Find or create user
-        let user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user) return null;
+        if (!user.passwordHash) return null;
 
-        if (!user) {
-          user = await prisma.user.create({
-            data: {
-              email,
-              name: email.split("@")[0],
-              role: "REP",
-              branch: "El Paso",
-            },
-          });
-        }
+        const valid = await bcrypt.compare(password, user.passwordHash);
+        if (!valid) return null;
 
         return {
           id: user.id,
@@ -56,6 +50,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           name: user.name,
           role: user.role,
           branch: user.branch,
+          profileComplete: user.profileComplete,
         };
       },
     }),
@@ -66,6 +61,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.id = user.id;
         token.role = user.role ?? "REP";
         token.branch = user.branch ?? null;
+        token.profileComplete = user.profileComplete ?? false;
       }
       return token;
     },
@@ -74,6 +70,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.id = token.id as string;
         session.user.role = token.role as string;
         session.user.branch = token.branch as string | null;
+        session.user.profileComplete = token.profileComplete as boolean;
       }
       return session;
     },

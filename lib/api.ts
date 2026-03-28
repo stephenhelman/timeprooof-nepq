@@ -26,14 +26,15 @@ export async function transcribeAudio(blob: Blob): Promise<string> {
 
 export async function callClaude(
   messages: ChatMessage[],
-  system: string
+  system: string,
+  maxTokens = 512
 ): Promise<string> {
   const res = await fetch("/api/claude", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
-      max_tokens: 512,
+      max_tokens: maxTokens,
       system,
       messages: messages
         .filter((m) => m.role !== "coach")
@@ -51,10 +52,49 @@ export async function callClaude(
 }
 
 export async function speakText(text: string): Promise<void> {
+  const isDev = process.env.NODE_ENV === "development";
+
+  let provider = "elevenlabs";
+  if (isDev) {
+    const stored = localStorage.getItem("tp_tts_provider");
+    if (stored) provider = stored;
+  }
+
+  // Browser native TTS — handled entirely client-side
+  if (provider === "browser") {
+    return new Promise((resolve, reject) => {
+      if (!window.speechSynthesis) {
+        reject(new Error("Browser TTS not supported"));
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.95;
+      utterance.pitch = 0.9;
+      utterance.volume = 1;
+      const voices = window.speechSynthesis.getVoices();
+      const maleVoice = voices.find(
+        (v) =>
+          v.name.toLowerCase().includes("male") ||
+          v.name.includes("Guy") ||
+          v.name.includes("Daniel") ||
+          v.name.includes("Alex")
+      );
+      if (maleVoice) utterance.voice = maleVoice;
+      utterance.onend = () => resolve();
+      utterance.onerror = (e) => reject(new Error(e.error));
+      window.speechSynthesis.speak(utterance);
+    });
+  }
+
+  // API-based TTS (ElevenLabs, OpenAI, Azure)
   const res = await fetch("/api/speak", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({
+      text,
+      ...(isDev && { provider }),
+    }),
   });
 
   if (!res.ok) {

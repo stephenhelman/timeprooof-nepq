@@ -25,7 +25,7 @@ export function homeownerSystemPrompt(params: {
 
   const drillContext =
     drillType === "objection"
-      ? `This is an objection drill focused on: "${surfaceObjection}". Your underlying fear is: "${realFear}". You will raise this objection when the rep presents price or asks for the close.`
+      ? `This is an objection drill. The rep has already completed the inspection and is presenting the close. Your FIRST line must be your objection: "${surfaceObjection}". Your underlying fear is: "${realFear}". Do not do small talk — open with your objection immediately.`
       : `This is a full walkthrough drill. You start as a neutral homeowner who just let the rep in. You have concerns about your roof but haven't fully voiced them yet.`;
 
   return `You are ${homeowner.name}, a homeowner in El Paso, TX.

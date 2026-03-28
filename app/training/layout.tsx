@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { Settings } from "lucide-react";
 
 export default async function TrainingLayout({
   children,
@@ -36,10 +37,21 @@ export default async function TrainingLayout({
               Training
             </Link>
           </div>
-          <span className="text-xs text-gray-500">
-            {session.user.name ?? session.user.email}
-            {session.user.branch ? ` · ${session.user.branch}` : ""}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-gray-500">
+              {session.user.name ?? session.user.email}
+              {session.user.branch ? ` · ${session.user.branch}` : ""}
+            </span>
+            {session.user.role === "ADMIN" && (
+              <Link
+                href="/admin/users"
+                className="text-gray-500 hover:text-gray-300 transition-colors"
+                title="Admin Panel"
+              >
+                <Settings size={14} />
+              </Link>
+            )}
+          </div>
         </div>
       </nav>
 

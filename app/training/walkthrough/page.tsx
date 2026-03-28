@@ -14,6 +14,7 @@ import { transcribeAudio, callClaude, speakText, createSession, saveMessage, com
 import { homeownerSystemPrompt, coachHintPrompt, debriefPrompt } from "@/lib/prompts";
 import type { TrainingMode, ChatMessage, DebriefResult, DrillScenario } from "@/lib/types";
 import { ChevronDown, ChevronUp, RefreshCw, Type, Mic } from "lucide-react";
+import TTSProviderPicker from "@/components/training/TTSProviderPicker";
 
 type Screen = "setup" | "report" | "drill" | "debrief";
 
@@ -192,10 +193,12 @@ export default function WalkthroughDrillPage() {
           trainingMode: mode,
           drillType: "walkthrough",
           transcript: transcriptStr,
-        })
+        }),
+        1024
       );
 
-      const result: DebriefResult = JSON.parse(raw);
+      const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
+      const result: DebriefResult = JSON.parse(cleaned);
       await completeSession(sessionId, result);
       setDebrief(result);
       setScreen("debrief");
@@ -480,6 +483,7 @@ export default function WalkthroughDrillPage() {
           {canDebrief ? "Debrief →" : "Keep going..."}
         </button>
       </div>
+      <TTSProviderPicker />
     </div>
   );
 }
