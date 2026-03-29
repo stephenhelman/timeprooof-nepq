@@ -11,7 +11,7 @@ const studyLinks = [
   { href: "/glossary", label: "Glossary" },
 ];
 
-export default function Navigation() {
+export default function Navigation({ userName }: { userName?: string | null }) {
   const pathname = usePathname();
 
   return (
@@ -36,9 +36,14 @@ export default function Navigation() {
             </Link>
           );
         })}
+        {userName && (
+          <span className="ml-auto text-xs text-gray-400 whitespace-nowrap pr-3 py-3 flex-shrink-0">
+            {userName}
+          </span>
+        )}
         <Link
           href="/training"
-          className="ml-auto px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors"
+          className={`${userName ? "" : "ml-auto"} px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors flex-shrink-0`}
           style={{ backgroundColor: "#C8A84B", color: "#0B1F3A" }}
         >
           Training Drills →

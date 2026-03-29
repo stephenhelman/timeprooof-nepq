@@ -1,4 +1,4 @@
-import type { CoreObjectionData } from "./types";
+import type { CoreObjectionData, NEPQStepDefinition } from "./types";
 
 export const OBJECTION_CORES: Record<string, CoreObjectionData> = {
   price: {
@@ -406,5 +406,48 @@ export const NEPQ_SEQUENCE = [
       "Did the rep identify the real fear beneath the surface objection?",
       "Did the rep avoid countering or defending before asking?",
     ],
+  },
+];
+
+export const NEPQ_STEPS: NEPQStepDefinition[] = [
+  {
+    number: 1,
+    label: "Acknowledge Without Agreeing",
+    shortLabel: "Acknowledge",
+    goal: "Land with the homeowner. One sentence. Do not counter.",
+    keyBehavior:
+      '"I completely understand." / "That makes total sense." / "Of course."',
+    warningIfSkipped:
+      "Skipping acknowledgment signals defensiveness — the homeowner digs in harder.",
+  },
+  {
+    number: 2,
+    label: "Diagnose with a Question",
+    shortLabel: "Diagnose",
+    goal: "Ask before you answer. Find out what you're actually handling.",
+    keyBehavior:
+      'PRICE: "Is it the total investment, or the monthly payment?" · URGENCY: "What would need to happen for this to feel like the right time?" · TRUST: "What specifically would you want to feel confident about?"',
+    warningIfSkipped:
+      "Going straight to handle without diagnosing means you're answering a question they didn't ask.",
+  },
+  {
+    number: 3,
+    label: "Isolate",
+    shortLabel: "Isolate",
+    goal: "Confirm this is the only thing between you and a yes.",
+    keyBehavior:
+      '"So if we could [solve that] — is there anything else that would keep you from moving forward today?"',
+    warningIfSkipped:
+      "Without isolation, a second objection appears after you've solved the first one.",
+  },
+  {
+    number: 4,
+    label: "Handle the Real Objection",
+    shortLabel: "Handle",
+    goal: "Respond to what they told you in step 2 — not the surface objection.",
+    keyBehavior:
+      "The handle is almost always another question. Mirror their exact pain point back to a specific solution.",
+    warningIfSkipped:
+      "If you handle the surface objection without diagnosing first, you're guessing.",
   },
 ];

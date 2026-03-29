@@ -4,10 +4,14 @@ import ScoreRing from "./ScoreRing";
 import { getScoreLabel, getCriterionColor } from "@/lib/scoring";
 import type { DebriefResult, TrainingMode } from "@/lib/types";
 import { TIMEPROOF_CRITERIA, NEPQ_CRITERIA } from "@/lib/scoring";
+import { NEPQ_STEPS } from "@/lib/constants";
+import type { NEPQStep } from "@/lib/types";
+import { Check, X, Minus } from "lucide-react";
 
 interface DebriefPanelProps {
   debrief: DebriefResult;
   mode: TrainingMode;
+  completedSteps?: NEPQStep[];
   onDrillAgain: () => void;
   onNewConfig: () => void;
 }
@@ -15,6 +19,7 @@ interface DebriefPanelProps {
 export default function DebriefPanel({
   debrief,
   mode,
+  completedSteps,
   onDrillAgain,
   onNewConfig,
 }: DebriefPanelProps) {
@@ -22,6 +27,59 @@ export default function DebriefPanel({
 
   return (
     <div className="space-y-6 pb-8">
+      {/* NEPQ step completion summary */}
+      {mode === "nepq" && completedSteps !== undefined && (
+        <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-gray-700">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+              Step Completion
+            </p>
+          </div>
+          <div className="divide-y divide-gray-700/50">
+            {NEPQ_STEPS.map((step) => {
+              const done = completedSteps.includes(step.number);
+              // A step is "in progress" if it's the highest attempted but not done
+              // We consider a step attempted if completedSteps has the previous step
+              const prevDone = step.number === 1 || completedSteps.includes((step.number - 1) as NEPQStep);
+              const inProgress = !done && prevDone && step.number <= (completedSteps.length + 1);
+              return (
+                <div key={step.number} className="flex items-center gap-3 px-4 py-2.5">
+                  <div
+                    className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{
+                      backgroundColor: done
+                        ? "rgba(22,163,74,0.2)"
+                        : inProgress
+                        ? "rgba(245,158,11,0.15)"
+                        : "rgba(107,114,128,0.15)",
+                    }}
+                  >
+                    {done ? (
+                      <Check size={11} className="text-green-500" strokeWidth={3} />
+                    ) : inProgress ? (
+                      <Minus size={11} className="text-amber-400" strokeWidth={3} />
+                    ) : (
+                      <X size={11} className="text-gray-600" strokeWidth={3} />
+                    )}
+                  </div>
+                  <span className="text-xs font-medium text-gray-300 flex-1">
+                    {step.number}. {step.shortLabel}
+                  </span>
+                  <span
+                    className="text-xs font-medium"
+                    style={{
+                      color: done ? "#4ade80" : inProgress ? "#fbbf24" : "#6b7280",
+                    }}
+                  >
+                    {done ? "Completed" : inProgress ? "In progress" : "Not reached"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Score header */}
       <div className="flex items-start gap-5">
         <ScoreRing score={debrief.overallScore} size={100} />

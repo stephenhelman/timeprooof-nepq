@@ -9,6 +9,8 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/training";
+  const passwordChanged = searchParams.get("passwordChanged") === "1";
+  const registered = searchParams.get("registered") === "1";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -25,12 +27,10 @@ function LoginForm() {
       redirect: false,
     });
 
-    console.log(result);
-
     setLoading(false);
 
     if (result?.error) {
-      setError("Invalid credentials. Use password: timeproof2024");
+      setError("Invalid email or password.");
     } else {
       router.push(callbackUrl);
     }
@@ -59,6 +59,16 @@ function LoginForm() {
         className="rounded-2xl p-8 border border-gray-800"
         style={{ backgroundColor: "#0B1F3A" }}
       >
+        {passwordChanged && (
+          <div className="bg-green-900/30 border border-green-700 rounded-lg px-4 py-3 text-green-300 text-sm mb-5">
+            Password updated. Please sign in with your new password.
+          </div>
+        )}
+        {registered && (
+          <div className="bg-green-900/30 border border-green-700 rounded-lg px-4 py-3 text-green-300 text-sm mb-5">
+            Account created! Sign in to continue.
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label

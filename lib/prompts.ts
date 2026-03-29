@@ -69,15 +69,66 @@ export function coachHintPrompt(params: {
   currentPhase?: string;
   lastUserMessage: string;
   conversationSoFar: string;
+  surfaceObjection?: string;
+  realFear?: string;
 }): string {
-  const { scenario, trainingMode, drillType, currentPhase, lastUserMessage, conversationSoFar } = params;
-
-  const modeGuide =
-    trainingMode === "nepq"
-      ? `Evaluate NEPQ criteria: Did the rep lead with a question? Did they avoid countering before asking? Are they moving toward the homeowner's real fear? Did they use silence?`
-      : `Evaluate TimeProof criteria: Did the rep use the correct scripted language? Are they hitting tie-downs? Are they following the sequence? Did they skip required phrases?`;
+  const { scenario, trainingMode, drillType, currentPhase, lastUserMessage, conversationSoFar, surfaceObjection, realFear } = params;
 
   const phaseContext = currentPhase ? `Current phase: ${currentPhase}` : "";
+
+  if (drillType === "objection") {
+    return `You are a NEPQ sales coach evaluating a roofing sales objection drill in real time.
+
+The homeowner's surface objection is: "${surfaceObjection ?? scenario.predictedObjection.variation}"
+Their real underlying fear is: ${realFear ?? "unstated"}
+Training mode: ${trainingMode.toUpperCase()}
+
+The rep is working through the NEPQ 4-step framework:
+Step 1 — Acknowledge Without Agreeing (one sentence acknowledgment, no counter)
+Step 2 — Diagnose with a Question (ask the diagnostic question before handling anything)
+Step 3 — Isolate (confirm nothing else is standing in the way)
+Step 4 — Handle the Real Objection (respond to what they said in step 2, not the surface)
+
+CONVERSATION SO FAR:
+${conversationSoFar}
+
+REP'S LAST MESSAGE: "${lastUserMessage}"
+
+Evaluate the rep's last message and return ONLY valid JSON — no markdown, no preamble:
+
+{
+  "hint": "Good: [specific thing they did right]",
+  "stepSignal": {
+    "currentStep": 1,
+    "stepComplete": false,
+    "reason": "One sentence explanation"
+  }
+}
+
+Rules for hint:
+- One sentence max. Start with "Good:" or "Fix:".
+- If Fix, include the better line in quotes.
+- In TimeProof mode: evaluate script adherence and tie-downs.
+- In NEPQ mode: evaluate whether they led with a question, avoided countering, moved toward real fear.
+
+Rules for stepSignal:
+- currentStep: which step (1–4) the rep is currently working through based on their message
+- stepComplete: true only if the rep has genuinely completed this step
+  - Step 1 complete: acknowledged without countering or defending
+  - Step 2 complete: asked a genuine NEPQ diagnostic question (not just any question)
+  - Step 3 complete: asked the isolation question and confirmed no other objections
+  - Step 4 complete: addressed the real underlying fear AND homeowner is moving toward yes
+- reason: brief explanation of your determination
+
+Be strict. A rep who acknowledges then immediately pitches has NOT completed step 1.
+"Does that make sense?" is NOT a diagnostic question for step 2.`;
+  }
+
+  // Walkthrough / non-objection drills — plain text hint, no step signal needed
+  const modeGuide =
+    trainingMode === "nepq"
+      ? `Evaluate NEPQ criteria: Did the rep lead with a question? Did they avoid countering before asking? Are they moving toward the homeowner's real fear?`
+      : `Evaluate TimeProof criteria: Did the rep use the correct scripted language? Are they hitting tie-downs? Are they following the sequence?`;
 
   return `You are a master sales coach observing a ${trainingMode.toUpperCase()} ${drillType} drill with ${scenario.homeowner.name}.
 
@@ -90,13 +141,18 @@ ${conversationSoFar}
 
 REP'S LAST MESSAGE: "${lastUserMessage}"
 
-Provide a one-sentence coaching note. Start with "Good:" if the rep did the right thing, or "Fix:" if they need correction.
-- If "Fix:", give the better line in quotes.
-- No encouragement for its own sake.
-- Maximum one sentence total.
-- Examples:
-  Good: You led with a question before presenting — that's exactly right.
-  Fix: You countered before asking — try "What specifically do you want to think through?" instead.`;
+Return ONLY valid JSON — no markdown, no preamble:
+
+{
+  "hint": "Good: [one sentence]",
+  "stepSignal": {
+    "currentStep": 1,
+    "stepComplete": false,
+    "reason": ""
+  }
+}
+
+hint must start with "Good:" or "Fix:". If Fix, include the better line in quotes. One sentence max.`;
 }
 
 export function debriefPrompt(params: {

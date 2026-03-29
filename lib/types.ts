@@ -108,3 +108,25 @@ export interface LeaderboardParams {
   mode?: "timeproof" | "nepq" | "all";
   period?: "week" | "month" | "all";
 }
+
+export type NEPQStep = 1 | 2 | 3 | 4;
+
+export interface NEPQStepDefinition {
+  number: NEPQStep;
+  label: string;
+  shortLabel: string;
+  goal: string;
+  keyBehavior: string;
+  warningIfSkipped: string;
+}
+
+export interface StepAdvanceSignal {
+  currentStep: NEPQStep;
+  stepComplete: boolean;
+  reason: string;
+}
+
+export interface CoachHintWithSignal {
+  hint: string;
+  stepSignal: StepAdvanceSignal;
+}

@@ -11,6 +11,7 @@ declare module "next-auth" {
       role: string;
       branch: string | null;
       profileComplete: boolean;
+      mustChangePassword: boolean;
     } & DefaultSession["user"];
   }
 
@@ -18,6 +19,17 @@ declare module "next-auth" {
     role?: string;
     branch?: string | null;
     profileComplete?: boolean;
+    mustChangePassword?: boolean;
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    id?: string;
+    role?: string;
+    branch?: string | null;
+    profileComplete?: boolean;
+    mustChangePassword?: boolean;
   }
 }
 
@@ -40,6 +52,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) return null;
         if (!user.passwordHash) return null;
+        // Deactivated accounts return null (same as bad credentials — no enumeration)
+        if (!user.isActive) return null;
 
         const valid = await bcrypt.compare(password, user.passwordHash);
         if (!valid) return null;
@@ -47,10 +61,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return {
           id: user.id,
           email: user.email,
-          name: user.name,
+          name: `${user.firstName} ${user.lastName}`,
           role: user.role,
           branch: user.branch,
           profileComplete: user.profileComplete,
+          mustChangePassword: user.mustChangePassword,
         };
       },
     }),
@@ -62,6 +77,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.role = user.role ?? "REP";
         token.branch = user.branch ?? null;
         token.profileComplete = user.profileComplete ?? false;
+        token.mustChangePassword = user.mustChangePassword ?? false;
       }
       return token;
     },
@@ -71,6 +87,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.role = token.role as string;
         session.user.branch = token.branch as string | null;
         session.user.profileComplete = token.profileComplete as boolean;
+        session.user.mustChangePassword = token.mustChangePassword as boolean;
       }
       return session;
     },

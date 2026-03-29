@@ -4,7 +4,6 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 const ProfileSchema = z.object({
-  name: z.string().min(2),
   branch: z.string().min(2),
   phone: z.string().optional(),
 });
@@ -26,12 +25,11 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const { name, branch, phone } = result.data;
+    const { branch, phone } = result.data;
 
     await prisma.user.update({
       where: { id: session.user.id },
       data: {
-        name,
         branch,
         phone: phone || null,
         profileComplete: true,

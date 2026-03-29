@@ -4,15 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
+import { validatePassword } from "@/lib/validatePassword";
 
 export default function RegisterPage() {
   const router = useRouter();
   const [form, setForm] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
-    branch: "",
-    phone: "",
-    inviteCode: "",
     password: "",
     confirmPassword: "",
   });
@@ -31,14 +30,15 @@ export default function RegisterPage() {
 
   function validate() {
     const errs: Record<string, string> = {};
-    if (!form.name.trim() || form.name.trim().length < 2)
-      errs.name = "Name must be at least 2 characters.";
-    if (!form.email.trim()) errs.email = "Email is required.";
-    if (!form.branch.trim() || form.branch.trim().length < 2)
-      errs.branch = "Branch must be at least 2 characters.";
-    if (!form.inviteCode.trim()) errs.inviteCode = "Invite code is required.";
-    if (!form.password || form.password.length < 8)
-      errs.password = "Password must be at least 8 characters.";
+    if (!form.firstName.trim()) errs.firstName = "First name is required.";
+    if (!form.lastName.trim()) errs.lastName = "Last name is required.";
+    if (!form.email.trim()) {
+      errs.email = "Email is required.";
+    } else if (!form.email.toLowerCase().endsWith("@timeproofusa.com")) {
+      errs.email = "Must be a @timeproofusa.com work email.";
+    }
+    const pwErr = validatePassword(form.password);
+    if (pwErr) errs.password = pwErr;
     if (form.password !== form.confirmPassword)
       errs.confirmPassword = "Passwords do not match.";
     return errs;
@@ -60,11 +60,9 @@ export default function RegisterPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: form.name,
+          firstName: form.firstName,
+          lastName: form.lastName,
           email: form.email,
-          branch: form.branch,
-          phone: form.phone || undefined,
-          inviteCode: form.inviteCode,
           password: form.password,
         }),
       });
@@ -73,7 +71,7 @@ export default function RegisterPage() {
 
       if (res.status === 201) {
         setSuccess(true);
-        setTimeout(() => router.push("/login"), 2000);
+        setTimeout(() => router.push("/login?registered=1"), 2000);
         return;
       }
 
@@ -86,13 +84,8 @@ export default function RegisterPage() {
         return;
       }
 
-      // 401 (invite code) or 409 (duplicate) — show generic banner
-      if (res.status === 401 || res.status === 409) {
-        if (res.status === 409) {
-          setGeneralError("An account with this email already exists.");
-        } else {
-          setGeneralError("Registration failed. Check your invite code and try again.");
-        }
+      if (res.status === 409) {
+        setGeneralError("An account with this email already exists.");
         return;
       }
 
@@ -118,7 +111,7 @@ export default function RegisterPage() {
         </div>
         <h1 className="text-2xl font-bold text-white">Create Your Account</h1>
         <p className="text-gray-400 text-sm mt-1">
-          You need an invite code from your manager
+          Only @timeproofusa.com email addresses are accepted
         </p>
       </div>
 
@@ -129,9 +122,7 @@ export default function RegisterPage() {
       >
         {success ? (
           <div className="text-center py-4">
-            <div className="text-green-400 font-semibold mb-2">
-              Account created!
-            </div>
+            <div className="text-green-400 font-semibold mb-2">Account created!</div>
             <p className="text-gray-400 text-sm">Redirecting to login...</p>
           </div>
         ) : (
@@ -142,27 +133,44 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {/* Full Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">
-                Full Name
-              </label>
-              <input
-                type="text"
-                value={form.name}
-                onChange={(e) => set("name", e.target.value)}
-                placeholder="Jane Smith"
-                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-colors"
-              />
-              {fieldErrors.name && (
-                <p className="text-red-400 text-xs mt-1">{fieldErrors.name}</p>
-              )}
+            {/* First / Last name row */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                  First Name
+                </label>
+                <input
+                  type="text"
+                  value={form.firstName}
+                  onChange={(e) => set("firstName", e.target.value)}
+                  placeholder="Jane"
+                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-colors"
+                />
+                {fieldErrors.firstName && (
+                  <p className="text-red-400 text-xs mt-1">{fieldErrors.firstName}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                  Last Name
+                </label>
+                <input
+                  type="text"
+                  value={form.lastName}
+                  onChange={(e) => set("lastName", e.target.value)}
+                  placeholder="Smith"
+                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-colors"
+                />
+                {fieldErrors.lastName && (
+                  <p className="text-red-400 text-xs mt-1">{fieldErrors.lastName}</p>
+                )}
+              </div>
             </div>
 
             {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1.5">
-                Email Address
+                Work Email
               </label>
               <input
                 type="email"
@@ -176,57 +184,6 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* Branch */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">
-                Branch / Location
-              </label>
-              <input
-                type="text"
-                value={form.branch}
-                onChange={(e) => set("branch", e.target.value)}
-                placeholder="e.g. El Paso"
-                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-colors"
-              />
-              {fieldErrors.branch && (
-                <p className="text-red-400 text-xs mt-1">{fieldErrors.branch}</p>
-              )}
-            </div>
-
-            {/* Phone (optional) */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">
-                Phone{" "}
-                <span className="text-gray-500 font-normal">(optional)</span>
-              </label>
-              <input
-                type="tel"
-                value={form.phone}
-                onChange={(e) => set("phone", e.target.value)}
-                placeholder="(915) 555-0100"
-                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-colors"
-              />
-            </div>
-
-            {/* Invite Code */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">
-                Invite Code
-              </label>
-              <input
-                type="password"
-                value={form.inviteCode}
-                onChange={(e) => set("inviteCode", e.target.value)}
-                placeholder="••••••••••••"
-                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-colors"
-              />
-              {fieldErrors.inviteCode && (
-                <p className="text-red-400 text-xs mt-1">
-                  {fieldErrors.inviteCode}
-                </p>
-              )}
-            </div>
-
             {/* Password */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1.5">
@@ -237,7 +194,7 @@ export default function RegisterPage() {
                   type={showPassword ? "text" : "password"}
                   value={form.password}
                   onChange={(e) => set("password", e.target.value)}
-                  placeholder="At least 8 characters"
+                  placeholder="Min 8 chars, uppercase, lowercase, special"
                   className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 pr-12 text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-colors"
                 />
                 <button
@@ -250,9 +207,7 @@ export default function RegisterPage() {
                 </button>
               </div>
               {fieldErrors.password && (
-                <p className="text-red-400 text-xs mt-1">
-                  {fieldErrors.password}
-                </p>
+                <p className="text-red-400 text-xs mt-1">{fieldErrors.password}</p>
               )}
             </div>
 
@@ -279,9 +234,7 @@ export default function RegisterPage() {
                 </button>
               </div>
               {fieldErrors.confirmPassword && (
-                <p className="text-red-400 text-xs mt-1">
-                  {fieldErrors.confirmPassword}
-                </p>
+                <p className="text-red-400 text-xs mt-1">{fieldErrors.confirmPassword}</p>
               )}
             </div>
 

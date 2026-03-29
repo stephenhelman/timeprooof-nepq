@@ -22,10 +22,13 @@ export default async function AdminUsersPage() {
 
   const serialized = users.map((u) => ({
     id: u.id,
-    name: u.name,
+    firstName: u.firstName,
+    lastName: u.lastName,
     email: u.email,
     branch: u.branch,
     role: u.role as string,
+    isActive: u.isActive,
+    mustChangePassword: u.mustChangePassword,
     profileComplete: u.profileComplete,
     createdAt: u.createdAt.toISOString(),
     drillCount: u._count.drills,
@@ -38,10 +41,13 @@ export default async function AdminUsersPage() {
         : null,
   }));
 
+  const inviteCode = process.env.INVITE_CODE ?? "(not set)";
+
   return (
     <AdminUsersClient
       users={serialized}
       currentUserId={session.user.id}
+      inviteCode={inviteCode}
     />
   );
 }

@@ -6,10 +6,12 @@ import MicButton from "@/components/training/MicButton";
 import ChatTranscript from "@/components/training/ChatTranscript";
 import CoachHint from "@/components/training/CoachHint";
 import DebriefPanel from "@/components/training/DebriefPanel";
+import NEPQStepTracker from "@/components/training/NEPQStepTracker";
 import { OBJECTION_CORES } from "@/lib/constants";
 import { transcribeAudio, callClaude, speakText, createSession, saveMessage, completeSession } from "@/lib/api";
 import { homeownerSystemPrompt, coachHintPrompt, debriefPrompt } from "@/lib/prompts";
-import type { TrainingMode, Intensity, ChatMessage, DebriefResult, DrillScenario } from "@/lib/types";
+import { parseCoachResponse, computeNextStepState, allStepsComplete } from "@/lib/stepAdvance";
+import type { TrainingMode, Intensity, ChatMessage, DebriefResult, DrillScenario, NEPQStep } from "@/lib/types";
 import { ChevronDown, ChevronUp, Type, Mic } from "lucide-react";
 import TTSProviderPicker from "@/components/training/TTSProviderPicker";
 
@@ -56,6 +58,9 @@ export default function ObjectionDrillPage() {
   const [micState, setMicState] = useState<"idle" | "recording" | "processing" | "speaking">("idle");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [showRef, setShowRef] = useState(false);
+  const [currentStep, setCurrentStep] = useState<NEPQStep>(1);
+  const [completedSteps, setCompletedSteps] = useState<NEPQStep[]>([]);
+  const [lastHint, setLastHint] = useState<string | undefined>(undefined);
   const [useText, setUseText] = useState(false);
   const [textInput, setTextInput] = useState("");
   const [debrief, setDebrief] = useState<DebriefResult | null>(null);
@@ -82,6 +87,9 @@ export default function ObjectionDrillPage() {
       setSessionId(id);
       setMessages([]);
       setCoachHint(null);
+      setCurrentStep(1);
+      setCompletedSteps([]);
+      setLastHint(undefined);
       setScreen("drill");
 
       // Opening homeowner message
@@ -135,9 +143,11 @@ export default function ObjectionDrillPage() {
           drillType: "objection",
           lastUserMessage: userText,
           conversationSoFar: conversationStr,
+          surfaceObjection: variation.obj,
+          realFear: variation.realFear,
         });
 
-        const [hintText, responseText] = await Promise.all([
+        const [rawCoach, responseText] = await Promise.all([
           callClaude([{ role: "user", content: "Evaluate this message." }], coachSystem).catch(() => ""),
           callClaude(
             updatedMessages.filter((m) => m.role !== "coach").map((m) => ({
@@ -155,6 +165,16 @@ export default function ObjectionDrillPage() {
           ),
         ]);
 
+        const parsed = parseCoachResponse(rawCoach);
+        const hintText = parsed.hint;
+
+        if (mode === "nepq") {
+          const next = computeNextStepState(currentStep, completedSteps, parsed.stepSignal);
+          setCurrentStep(next.currentStep);
+          setCompletedSteps(next.completedSteps);
+          setLastHint(hintText || undefined);
+        }
+
         const coachMsg: ChatMessage = { role: "coach", content: hintText };
         const assistantMsg: ChatMessage = { role: "assistant", content: responseText };
 
@@ -171,7 +191,7 @@ export default function ObjectionDrillPage() {
         setError("Something went wrong. Check your connection and try again.");
       }
     },
-    [sessionId, messages, scenario, mode, intensity, variation]
+    [sessionId, messages, scenario, mode, intensity, variation, currentStep, completedSteps]
   );
 
   async function handleDebrief() {
@@ -343,6 +363,7 @@ export default function ObjectionDrillPage() {
         <DebriefPanel
           debrief={debrief}
           mode={mode}
+          completedSteps={completedSteps}
           onDrillAgain={() => {
             setScreen("drill");
             setMessages([]);
@@ -377,26 +398,35 @@ export default function ObjectionDrillPage() {
         <ModeToggle mode={mode} onChange={setMode} drillActive />
       </div>
 
-      {/* Handler reference */}
-      <div className="shrink-0 mb-2">
-        <button
-          onClick={() => setShowRef((s) => !s)}
-          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
-        >
-          {showRef ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          Show Reference
-        </button>
-        {showRef && (
-          <div className="mt-2 bg-gray-800 rounded-xl p-4 space-y-1">
-            {handlers.map((step, i) => (
-              <p key={i} className="text-xs text-gray-300 flex gap-2">
-                <span className="text-gray-500 shrink-0">{i + 1}.</span>
-                {step}
-              </p>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* NEPQ Step Tracker (NEPQ mode) or Handler Reference (TimeProof mode) */}
+      {mode === "nepq" ? (
+        <NEPQStepTracker
+          currentStep={currentStep}
+          completedSteps={completedSteps}
+          objectionCore={selectedCore}
+          lastHint={lastHint}
+        />
+      ) : (
+        <div className="shrink-0 mb-2">
+          <button
+            onClick={() => setShowRef((s) => !s)}
+            className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
+          >
+            {showRef ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            Show Reference
+          </button>
+          {showRef && (
+            <div className="mt-2 bg-gray-800 rounded-xl p-4 space-y-1">
+              {handlers.map((step, i) => (
+                <p key={i} className="text-xs text-gray-300 flex gap-2">
+                  <span className="text-gray-500 shrink-0">{i + 1}.</span>
+                  {step}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Transcript */}
       <div className="flex-1 bg-gray-900 rounded-xl overflow-hidden flex flex-col min-h-0">
@@ -461,6 +491,20 @@ export default function ObjectionDrillPage() {
               onRecordingComplete={handleRecordingComplete}
               disabled={micState !== "idle"}
             />
+          </div>
+        )}
+
+        {mode === "nepq" && allStepsComplete(completedSteps) && (
+          <div className="rounded-xl p-3 border border-green-700 bg-green-950/30 flex items-center justify-between">
+            <span className="text-xs font-semibold text-green-400">All 4 steps complete!</span>
+            <button
+              onClick={handleDebrief}
+              disabled={micState !== "idle"}
+              className="text-xs font-bold px-3 py-1.5 rounded-lg disabled:opacity-40 transition-opacity"
+              style={{ backgroundColor: "#16a34a", color: "white" }}
+            >
+              Debrief →
+            </button>
           </div>
         )}
 

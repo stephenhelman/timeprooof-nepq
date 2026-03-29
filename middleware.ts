@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 
 export default auth((req: NextRequest & { auth: unknown }) => {
   const { pathname } = req.nextUrl;
-  const session = (req as unknown as { auth: { user?: { profileComplete?: boolean; role?: string } } | null }).auth;
+  const session = (req as unknown as { auth: { user?: { profileComplete?: boolean; role?: string; mustChangePassword?: boolean } } | null }).auth;
 
   // Public: auth API, login, register
   if (
@@ -15,14 +15,8 @@ export default auth((req: NextRequest & { auth: unknown }) => {
     return NextResponse.next();
   }
 
-  // Protected routes that require auth
-  const requiresAuth =
-    pathname.startsWith("/training") ||
-    pathname.startsWith("/api/training") ||
-    pathname.startsWith("/admin") ||
-    pathname.startsWith("/onboarding");
-
-  if (requiresAuth && !session?.user) {
+  // All other routes require auth
+  if (!session?.user) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -32,6 +26,19 @@ export default auth((req: NextRequest & { auth: unknown }) => {
   }
 
   if (session?.user) {
+    // Force password change
+    if (
+      session.user.mustChangePassword &&
+      pathname !== "/change-password" &&
+      !pathname.startsWith("/api/user/password") &&
+      !pathname.startsWith("/api/auth")
+    ) {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json({ error: "Password change required" }, { status: 403 });
+      }
+      return NextResponse.redirect(new URL("/change-password", req.url));
+    }
+
     // Redirect incomplete profiles to onboarding (skip if already there)
     if (
       !session.user.profileComplete &&
@@ -52,9 +59,6 @@ export default auth((req: NextRequest & { auth: unknown }) => {
 
 export const config = {
   matcher: [
-    "/training/:path*",
-    "/api/training/:path*",
-    "/admin/:path*",
-    "/onboarding/:path*",
+    "/((?!_next/static|_next/image|favicon.ico|icons|images|fonts).*)",
   ],
 };
