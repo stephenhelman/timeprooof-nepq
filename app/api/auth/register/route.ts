@@ -14,6 +14,7 @@ const RegisterSchema = z.object({
       (v) => v.toLowerCase().endsWith("@timeproofusa.com"),
       "Must be a @timeproofusa.com work email."
     ),
+  inviteCode: z.string().min(1, "Invite code is required."),
   password: z.string().refine((v) => validatePassword(v) === null, {
     message: "Password does not meet requirements.",
   }),
@@ -31,7 +32,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { firstName, lastName, email, password } = result.data;
+    const { firstName, lastName, email, inviteCode, password } = result.data;
+
+    if (inviteCode !== process.env.INVITE_CODE) {
+      return NextResponse.json(
+        { error: "Registration failed. Check your invite code and try again." },
+        { status: 401 }
+      );
+    }
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {

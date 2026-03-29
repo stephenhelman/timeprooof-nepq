@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Settings } from "lucide-react";
+import SignOutButton from "@/components/SignOutButton";
 
 export default async function TrainingLayout({
   children,
@@ -51,6 +52,7 @@ export default async function TrainingLayout({
                 <Settings size={14} />
               </Link>
             )}
+            <SignOutButton />
           </div>
         </div>
       </nav>

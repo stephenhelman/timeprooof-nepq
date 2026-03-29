@@ -12,6 +12,7 @@ export default function RegisterPage() {
     firstName: "",
     lastName: "",
     email: "",
+    inviteCode: "",
     password: "",
     confirmPassword: "",
   });
@@ -37,6 +38,7 @@ export default function RegisterPage() {
     } else if (!form.email.toLowerCase().endsWith("@timeproofusa.com")) {
       errs.email = "Must be a @timeproofusa.com work email.";
     }
+    if (!form.inviteCode.trim()) errs.inviteCode = "Invite code is required.";
     const pwErr = validatePassword(form.password);
     if (pwErr) errs.password = pwErr;
     if (form.password !== form.confirmPassword)
@@ -63,6 +65,7 @@ export default function RegisterPage() {
           firstName: form.firstName,
           lastName: form.lastName,
           email: form.email,
+          inviteCode: form.inviteCode,
           password: form.password,
         }),
       });
@@ -81,6 +84,11 @@ export default function RegisterPage() {
           errs[k] = (v as string[])[0];
         }
         setFieldErrors(errs);
+        return;
+      }
+
+      if (res.status === 401) {
+        setGeneralError("Registration failed. Check your invite code and try again.");
         return;
       }
 
@@ -181,6 +189,23 @@ export default function RegisterPage() {
               />
               {fieldErrors.email && (
                 <p className="text-red-400 text-xs mt-1">{fieldErrors.email}</p>
+              )}
+            </div>
+
+            {/* Invite Code */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                Invite Code
+              </label>
+              <input
+                type="password"
+                value={form.inviteCode}
+                onChange={(e) => set("inviteCode", e.target.value)}
+                placeholder="••••••••••••"
+                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-colors"
+              />
+              {fieldErrors.inviteCode && (
+                <p className="text-red-400 text-xs mt-1">{fieldErrors.inviteCode}</p>
               )}
             </div>
 

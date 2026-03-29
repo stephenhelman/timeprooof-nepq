@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
+import { LogOut } from "lucide-react";
 
 const studyLinks = [
   { href: "/", label: "Overview" },
@@ -36,18 +38,30 @@ export default function Navigation({ userName }: { userName?: string | null }) {
             </Link>
           );
         })}
-        {userName && (
-          <span className="ml-auto text-xs text-gray-400 whitespace-nowrap pr-3 py-3 flex-shrink-0">
-            {userName}
-          </span>
-        )}
-        <Link
-          href="/training"
-          className={`${userName ? "" : "ml-auto"} px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors flex-shrink-0`}
-          style={{ backgroundColor: "#C8A84B", color: "#0B1F3A" }}
-        >
-          Training Drills →
-        </Link>
+        <div className={`${userName ? "ml-auto" : "ml-auto"} flex items-center gap-3 flex-shrink-0`}>
+          {userName && (
+            <span className="text-xs text-gray-400 whitespace-nowrap">
+              {userName}
+            </span>
+          )}
+          <Link
+            href="/training"
+            className="px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors"
+            style={{ backgroundColor: "#C8A84B", color: "#0B1F3A" }}
+          >
+            Training Drills →
+          </Link>
+          {userName && (
+            <button
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="text-gray-500 hover:text-gray-300 transition-colors"
+              title="Sign out"
+              style={{ minHeight: "unset" }}
+            >
+              <LogOut size={14} />
+            </button>
+          )}
+        </div>
       </div>
     </nav>
   );
