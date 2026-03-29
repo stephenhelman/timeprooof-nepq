@@ -1,10 +1,21 @@
-import { auth } from "@/auth";
+import NextAuth from "next-auth";
+import authConfig from "./auth.config";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+const { auth } = NextAuth(authConfig);
+
 export default auth((req: NextRequest & { auth: unknown }) => {
   const { pathname } = req.nextUrl;
-  const session = (req as unknown as { auth: { user?: { profileComplete?: boolean; role?: string; mustChangePassword?: boolean } } | null }).auth;
+  const session = (req as unknown as {
+    auth: {
+      user?: {
+        profileComplete?: boolean;
+        role?: string;
+        mustChangePassword?: boolean;
+      };
+    } | null;
+  }).auth;
 
   // Public: auth API, login, register
   if (
@@ -39,7 +50,7 @@ export default auth((req: NextRequest & { auth: unknown }) => {
       return NextResponse.redirect(new URL("/change-password", req.url));
     }
 
-    // Redirect incomplete profiles to onboarding (skip if already there)
+    // Redirect incomplete profiles to onboarding
     if (
       !session.user.profileComplete &&
       !pathname.startsWith("/onboarding") &&
