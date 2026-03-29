@@ -5,16 +5,26 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { LogOut } from "lucide-react";
 
-const studyLinks = [
-  { href: "/", label: "Overview" },
-  { href: "/by-section", label: "By Section" },
-  { href: "/scripts", label: "Scripts" },
-  { href: "/flashcards", label: "Flashcards" },
-  { href: "/glossary", label: "Glossary" },
-];
+interface Props {
+  user: {
+    username: string | null | undefined;
+    role: string | null | undefined;
+  };
+}
 
-export default function Navigation({ userName }: { userName?: string | null }) {
+export default function Navigation({ user }: Props) {
   const pathname = usePathname();
+  const studyLinks = [
+    { href: "/", label: "Overview" },
+    { href: "/by-section", label: "By Section" },
+    { href: "/scripts", label: "Scripts" },
+    { href: "/flashcards", label: "Flashcards" },
+    { href: "/glossary", label: "Glossary" },
+    ...(user.role === "ADMIN"
+      ? [{ href: "/admin/users", label: "Admin" }]
+      : []),
+  ];
+  console.log(studyLinks);
 
   return (
     <nav className="bg-gray-900 border-b border-gray-700 sticky top-0 z-50">
@@ -23,7 +33,8 @@ export default function Navigation({ userName }: { userName?: string | null }) {
           TIMEPROOF Training
         </span>
         {studyLinks.map(({ href, label }) => {
-          const isActive = href === "/" ? pathname === "/" : pathname.startsWith(href);
+          const isActive =
+            href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
             <Link
               key={href}
@@ -38,20 +49,19 @@ export default function Navigation({ userName }: { userName?: string | null }) {
             </Link>
           );
         })}
-        <div className={`${userName ? "ml-auto" : "ml-auto"} flex items-center gap-3 flex-shrink-0`}>
-          {userName && (
-            <span className="text-xs text-gray-400 whitespace-nowrap">
-              {userName}
-            </span>
-          )}
+        <div
+          className={`${user.username ? "ml-auto" : "ml-auto"} flex items-center gap-3 flex-shrink-0`}
+        >
+          <span className="text-xs text-gray-400 whitespace-nowrap">
+            {user ? user.username : "TP User"}
+          </span>
           <Link
             href="/training"
-            className="px-4 py-2 text-sm font-semibold rounded-lg whitespace-nowrap transition-colors"
-            style={{ backgroundColor: "#C8A84B", color: "#0B1F3A" }}
+            className="px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors"
           >
             Training Drills →
           </Link>
-          {userName && (
+          {user && (
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
               className="text-gray-500 hover:text-gray-300 transition-colors"

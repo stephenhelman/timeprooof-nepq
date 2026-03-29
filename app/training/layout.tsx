@@ -25,14 +25,14 @@ export default async function TrainingLayout({
           <div className="flex items-center gap-4">
             <Link
               href="/"
-              className="text-gray-400 hover:text-white text-xs transition-colors"
+              className="text-gray-400 hover:text-white text-xs transition-colors flex items-center"
             >
               ← Study Guide
             </Link>
             <span className="text-gray-700">|</span>
             <Link
               href="/training"
-              className="text-sm font-semibold"
+              className="text-sm font-semibold flex items-center"
               style={{ color: "#C8A84B" }}
             >
               Training
@@ -41,12 +41,11 @@ export default async function TrainingLayout({
           <div className="flex items-center gap-3">
             <span className="text-xs text-gray-500">
               {session.user.name ?? session.user.email}
-              {session.user.branch ? ` · ${session.user.branch}` : ""}
             </span>
             {session.user.role === "ADMIN" && (
               <Link
                 href="/admin/users"
-                className="text-gray-500 hover:text-gray-300 transition-colors"
+                className="text-gray-500 hover:text-gray-300 transition-colors flex items-center"
                 title="Admin Panel"
               >
                 <Settings size={14} />

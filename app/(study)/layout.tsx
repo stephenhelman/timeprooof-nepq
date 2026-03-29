@@ -7,11 +7,21 @@ export default async function StudyLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
-  const userName = session?.user?.name ?? null;
+  const user = session?.user ?? null;
+
+  let userProp;
+  if (!user) {
+    userProp = null;
+  }
+
+  userProp = {
+    username: user!.name,
+    role: user?.role,
+  };
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      <Navigation userName={userName} />
+      <Navigation user={userProp} />
       {children}
     </div>
   );
