@@ -3,6 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useState } from "react";
+import Link from "next/link";
 import { EXPERIENCE_LEVELS } from "@/lib/constants";
 import type { ExperienceLevel } from "@/lib/types";
 
@@ -42,7 +43,15 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-lg mx-auto space-y-8">
-      <h1 className="text-xl font-bold text-white">Profile Settings</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold text-white">Profile Settings</h1>
+        <Link
+          href="/training"
+          className="text-xs text-gray-400 hover:text-white transition-colors"
+        >
+          ← Back to Training
+        </Link>
+      </div>
 
       {/* Experience Level Section */}
       <div className="space-y-4">

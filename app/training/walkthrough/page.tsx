@@ -15,7 +15,7 @@ import { transcribeAudio, callClaude, speakText, createSession, saveMessage, com
 import { homeownerSystemPrompt, coachHintPrompt, debriefPrompt } from "@/lib/prompts";
 import { parseCoachResponse } from "@/lib/stepAdvance";
 import type { TrainingMode, ChatMessage, DebriefResult, DrillScenario, ExperienceLevel } from "@/lib/types";
-import { ChevronDown, ChevronUp, RefreshCw, Type, Mic, Lock } from "lucide-react";
+import { ChevronDown, ChevronUp, RefreshCw, Type, Mic, Lock, ClipboardList } from "lucide-react";
 import TTSProviderPicker from "@/components/training/TTSProviderPicker";
 
 type Screen = "setup" | "report" | "drill" | "debrief";
@@ -52,6 +52,7 @@ export default function WalkthroughDrillPage() {
   const [currentPhaseIndex, setCurrentPhaseIndex] = useState(0);
   const [completedPhaseIds, setCompletedPhaseIds] = useState<string[]>([]);
   const [showPhasePanel, setShowPhasePanel] = useState(false);
+  const [showScenarioPanel, setShowScenarioPanel] = useState(false);
   const [useText, setUseText] = useState(false);
   const [textInput, setTextInput] = useState("");
   const [debrief, setDebrief] = useState<DebriefResult | null>(null);
@@ -709,8 +710,67 @@ export default function WalkthroughDrillPage() {
             </span>
           )}
         </div>
-        <ModeToggle mode={mode} onChange={setMode} drillActive />
+        <div className="flex items-center gap-2">
+          {scenario && (
+            <button
+              onClick={() => setShowScenarioPanel((s) => !s)}
+              title="Scenario reference"
+              className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg transition-colors ${
+                showScenarioPanel
+                  ? "bg-blue-700/40 text-blue-300 border border-blue-600/40"
+                  : "text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500"
+              }`}
+            >
+              <ClipboardList className="w-3.5 h-3.5" />
+              <span>Scenario</span>
+            </button>
+          )}
+          <ModeToggle mode={mode} onChange={setMode} drillActive />
+        </div>
       </div>
+
+      {/* Scenario reference panel */}
+      {showScenarioPanel && scenario && (
+        <div className="shrink-0 mb-2 bg-gray-800 rounded-xl p-4 text-xs space-y-2 border border-gray-700">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="font-bold text-white text-sm">{scenario.homeowner.name}</p>
+              <p className="text-gray-400 mt-0.5">
+                {scenario.homeowner.ageRange} · {scenario.homeowner.yearsInHome} yrs in home · {scenario.homeowner.familySituation}
+              </p>
+            </div>
+            <span
+              className="text-xs font-bold px-2 py-0.5 rounded-full uppercase shrink-0"
+              style={{
+                color: SEVERITY_COLORS[scenario.roof.severity],
+                backgroundColor: `${SEVERITY_COLORS[scenario.roof.severity]}20`,
+              }}
+            >
+              {scenario.roof.severity}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-gray-400">
+            <span>Personality: <span className="text-gray-300">{scenario.homeowner.personality}</span></span>
+            <span>Roof age: <span className="text-gray-300">{scenario.roof.age} yrs</span></span>
+            <span>Contractor history: <span className="text-gray-300">{scenario.homeowner.contractorHistory}</span></span>
+            <span>Spouse present: <span className="text-gray-300">{scenario.homeowner.spousePresent ? "Yes" : "No"}</span></span>
+          </div>
+          <div className="pt-1 border-t border-gray-700">
+            <p className="text-gray-500 mb-1">Predicted objection</p>
+            <p className="text-amber-400">"{scenario.predictedObjection.variation}"</p>
+          </div>
+          {scenario.findings.length > 0 && (
+            <div className="pt-1 border-t border-gray-700">
+              <p className="text-gray-500 mb-1">Damage findings</p>
+              <ul className="space-y-0.5">
+                {scenario.findings.map((f, i) => (
+                  <li key={i} className="text-gray-300">· {f.repNarration}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Current phase reference panel */}
       {displayedPhase && (
