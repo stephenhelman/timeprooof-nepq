@@ -38,7 +38,9 @@ interface PresetScenarioItem {
   challenge: string;
   unlocked: boolean;
   scenarioJson: DrillScenario;
-  progress: { mastered: boolean; attempts: number; rollingAverage: number | null } | null;
+  progress: { mastered: boolean; attempts: number; rollingAverage: number | null; consecutivePassCount: number } | null;
+  phaseProgress: { phaseId: string; attempts: number; consecutivePassCount: number; mastered: boolean }[];
+  masteredPhaseIds: string[];
 }
 
 export default function WalkthroughDrillPage() {
@@ -54,6 +56,7 @@ export default function WalkthroughDrillPage() {
   const [entryMode, setEntryMode] = useState<"preset" | "random">("preset");
   const [presetScenarios, setPresetScenarios] = useState<PresetScenarioItem[]>([]);
   const [tier3Unlocked, setTier3Unlocked] = useState(false);
+  const [nepqUnlocked, setNepqUnlocked] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<PresetScenarioItem | null>(null);
   const [presetsLoading, setPresetsLoading] = useState(true);
 
@@ -74,9 +77,10 @@ export default function WalkthroughDrillPage() {
   useEffect(() => {
     fetch("/api/training/scenarios")
       .then((r) => r.json())
-      .then((d: { scenarios: PresetScenarioItem[]; tier3Unlocked: boolean }) => {
+      .then((d: { scenarios: PresetScenarioItem[]; tier3Unlocked: boolean; nepqUnlocked: boolean }) => {
         setPresetScenarios(d.scenarios ?? []);
         setTier3Unlocked(d.tier3Unlocked ?? false);
+        setNepqUnlocked(d.nepqUnlocked ?? false);
         setPresetsLoading(false);
       })
       .catch(() => setPresetsLoading(false));
@@ -311,13 +315,28 @@ export default function WalkthroughDrillPage() {
           });
         }
 
-        // Advance phase — for full walkthrough use message count, for phase drills use AI signal only
+        // Advance checkpoint index by message count
         let newPhaseIndex = currentPhaseIndex;
         if (!selectedPhaseId) {
+          // Full walkthrough: advance across entire sequence
           newPhaseIndex = Math.min(
             Math.floor(updatedMessages.filter((m) => m.role === "user").length / 3),
             sequence.length - 1
           );
+          if (newPhaseIndex > currentPhaseIndex) {
+            setCompletedPhaseIds((prev) => [...prev, currentPhase.id]);
+            setCurrentPhaseIndex(newPhaseIndex);
+          }
+        } else if (mode === "timeproof") {
+          // Phase drill: advance within this phase's checkpoints by message count
+          const phaseCheckpoints = getCheckpointsForPhase(selectedPhaseId);
+          const phaseStartIndex = sequence.findIndex((c) => c.id === phaseCheckpoints[0]?.id);
+          const userMsgCount = updatedMessages.filter((m) => m.role === "user").length;
+          const offsetWithinPhase = Math.min(
+            Math.floor(userMsgCount / 2),
+            phaseCheckpoints.length - 1
+          );
+          newPhaseIndex = phaseStartIndex >= 0 ? phaseStartIndex + offsetWithinPhase : currentPhaseIndex;
           if (newPhaseIndex > currentPhaseIndex) {
             setCompletedPhaseIds((prev) => [...prev, currentPhase.id]);
             setCurrentPhaseIndex(newPhaseIndex);
@@ -408,10 +427,15 @@ export default function WalkthroughDrillPage() {
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ score: result.overallScore }),
+              body: JSON.stringify({
+                score: result.overallScore,
+                phaseId: selectedPhaseId ?? undefined,
+                trainingMode: mode,
+              }),
             }
           );
           const progressData = await progressRes.json();
+          if (progressData.unlocks?.nepq) setNepqUnlocked(true);
           if (progressData.unlocks?.tier2) setUnlockModal({ tier: 2 });
           else if (progressData.unlocks?.tier3) setUnlockModal({ tier: 3 });
         } catch {
@@ -510,7 +534,7 @@ export default function WalkthroughDrillPage() {
       <div className="space-y-6 max-w-2xl mx-auto">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-white">Full Walkthrough</h1>
-          <ModeToggle mode={mode} onChange={setMode} />
+          <ModeToggle mode={mode} onChange={setMode} nepqLocked={!nepqUnlocked} />
         </div>
 
         {/* Entry Mode Selector */}
@@ -947,7 +971,7 @@ export default function WalkthroughDrillPage() {
               <span>Scenario</span>
             </button>
           )}
-          <ModeToggle mode={mode} onChange={setMode} drillActive />
+          <ModeToggle mode={mode} onChange={setMode} drillActive nepqLocked={!nepqUnlocked} />
         </div>
       </div>
 
