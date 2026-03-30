@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { Settings } from "lucide-react";
+import { Settings, User } from "lucide-react";
 import SignOutButton from "@/components/SignOutButton";
 
 export default async function TrainingLayout({
@@ -42,6 +42,13 @@ export default async function TrainingLayout({
             <span className="text-xs text-gray-500">
               {session.user.name ?? session.user.email}
             </span>
+            <Link
+              href="/profile"
+              className="text-gray-500 hover:text-gray-300 transition-colors flex items-center"
+              title="Profile Settings"
+            >
+              <User size={14} />
+            </Link>
             {session.user.role === "ADMIN" && (
               <Link
                 href="/admin/users"

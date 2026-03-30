@@ -300,3 +300,49 @@ export function generateScenario(): DrillScenario {
     },
   };
 }
+
+// ── Scenario hash ─────────────────────────────────────────────────────────────
+
+/** Stable identifier for grouping related phase drills on the same scenario */
+export function computeScenarioHash(scenario: DrillScenario): string {
+  const name = scenario.homeowner.name.replace(/\s+/g, "_").toLowerCase();
+  const roofAge = scenario.roof.age;
+  return `${name}_${roofAge}`;
+}
+
+// ── localStorage scenario persistence ────────────────────────────────────────
+
+const SCENARIO_KEY = "tp_active_scenario";
+const SCENARIO_TTL_MS = 24 * 60 * 60 * 1000;
+
+interface StoredScenario {
+  scenario: DrillScenario;
+  savedAt: number;
+}
+
+export function saveScenario(scenario: DrillScenario): void {
+  if (typeof window === "undefined") return;
+  const payload: StoredScenario = { scenario, savedAt: Date.now() };
+  localStorage.setItem(SCENARIO_KEY, JSON.stringify(payload));
+}
+
+export function loadScenario(): DrillScenario | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(SCENARIO_KEY);
+    if (!raw) return null;
+    const stored: StoredScenario = JSON.parse(raw);
+    if (Date.now() - stored.savedAt > SCENARIO_TTL_MS) {
+      localStorage.removeItem(SCENARIO_KEY);
+      return null;
+    }
+    return stored.scenario;
+  } catch {
+    return null;
+  }
+}
+
+export function clearScenario(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(SCENARIO_KEY);
+}

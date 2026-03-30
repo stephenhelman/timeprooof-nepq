@@ -38,6 +38,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           branch: user.branch,
           profileComplete: user.profileComplete,
           mustChangePassword: user.mustChangePassword,
+          experienceLevel: user.experienceLevel,
         };
       },
     }),

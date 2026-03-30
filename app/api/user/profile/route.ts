@@ -4,8 +4,9 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 const ProfileSchema = z.object({
-  branch: z.string().min(2),
+  branch: z.string().min(2).optional(),
   phone: z.string().optional(),
+  experienceLevel: z.enum(["rookie", "rep", "vet"]).optional(),
 });
 
 export async function PATCH(req: NextRequest) {
@@ -25,14 +26,15 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const { branch, phone } = result.data;
+    const { branch, phone, experienceLevel } = result.data;
 
     await prisma.user.update({
       where: { id: session.user.id },
       data: {
-        branch,
-        phone: phone || null,
-        profileComplete: true,
+        ...(branch !== undefined && { branch }),
+        ...(phone !== undefined && { phone: phone || null }),
+        ...(experienceLevel !== undefined && { experienceLevel }),
+        ...(branch !== undefined && { profileComplete: true }),
       },
     });
 

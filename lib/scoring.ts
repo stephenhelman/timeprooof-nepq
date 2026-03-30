@@ -7,11 +7,11 @@ export const TIMEPROOF_CRITERIA = [
 ];
 
 export const NEPQ_CRITERIA = [
-  { id: "question_first", label: "Question First" },
-  { id: "specificity", label: "Specificity" },
-  { id: "real_fear", label: "Real Fear Identified" },
-  { id: "no_pressure", label: "No Pressure" },
-  { id: "value_anchor", label: "Value Anchor" },
+  { id: "question_first", label: "Led with questions" },
+  { id: "silence_discipline", label: "Silence discipline" },
+  { id: "emotional_progression", label: "Emotional progression" },
+  { id: "specificity", label: "Connected to their situation" },
+  { id: "phase_goal_achieved", label: "Phase goal achieved" },
 ];
 
 export function getScoreColor(score: number): string {

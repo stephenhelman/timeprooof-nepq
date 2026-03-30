@@ -11,12 +11,18 @@ export function parseCoachResponse(raw: string): CoachHintWithSignal {
         stepComplete: parsed.stepSignal?.stepComplete || false,
         reason: parsed.stepSignal?.reason || "",
       },
+      phaseComplete: parsed.phaseComplete === true,
+      phaseCompleteReason: parsed.phaseCompleteReason || "",
+      behaviorsAchieved: Array.isArray(parsed.behaviorsAchieved) ? parsed.behaviorsAchieved : [],
     };
   } catch {
     // Malformed JSON — treat as plain hint text, no step advance
     return {
       hint: raw,
       stepSignal: { currentStep: 1, stepComplete: false, reason: "" },
+      phaseComplete: false,
+      phaseCompleteReason: "",
+      behaviorsAchieved: [],
     };
   }
 }

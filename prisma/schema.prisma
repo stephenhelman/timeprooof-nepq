@@ -23,6 +23,7 @@ model User {
   profileComplete    Boolean   @default(false)
   isActive           Boolean   @default(true)
   mustChangePassword Boolean   @default(false)
+  experienceLevel    String    @default("rookie")
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
@@ -87,6 +88,9 @@ model DrillSession {
   objectionVariation String?
   intensity          String?
   scenarioJson       Json?
+  phaseId            String?
+  experienceLevel    String?
+  scenarioHash       String?
 
   // Results
   overallScore Int?

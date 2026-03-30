@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import HistoryChart from "@/components/training/HistoryChart";
 import ScoreRing from "@/components/training/ScoreRing";
 import { getScoreColor, getScoreLabel } from "@/lib/scoring";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 interface DrillSession {
   id: string;
@@ -14,6 +15,9 @@ interface DrillSession {
   objectionVariation?: string;
   overallScore?: number;
   oneLiner?: string;
+  phaseId?: string | null;
+  experienceLevel?: string | null;
+  scenarioHash?: string | null;
   startedAt: string;
   completedAt?: string;
 }
@@ -31,6 +35,7 @@ interface LeaderboardEntry {
 type Tab = "history" | "leaderboard";
 type PeriodFilter = "week" | "month" | "all";
 type ModeFilter = "all" | "timeproof" | "nepq";
+type LevelFilter = "all" | "rookie" | "rep" | "vet";
 
 export default function HistoryPage() {
   const [tab, setTab] = useState<Tab>("history");
@@ -41,9 +46,11 @@ export default function HistoryPage() {
 
   const [typeFilter, setTypeFilter] = useState<"all" | "objection" | "walkthrough">("all");
   const [modeFilter, setModeFilter] = useState<ModeFilter>("all");
+  const [levelFilter, setLevelFilter] = useState<LevelFilter>("all");
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("all");
   const [lbMode, setLbMode] = useState<ModeFilter>("all");
   const [lbPeriod, setLbPeriod] = useState<PeriodFilter>("all");
+  const [expandedHashes, setExpandedHashes] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetch("/api/training/sessions")
@@ -73,6 +80,7 @@ export default function HistoryPage() {
   const filtered = completed.filter((s) => {
     if (typeFilter !== "all" && s.drillType.toLowerCase() !== typeFilter) return false;
     if (modeFilter !== "all" && s.trainingMode.toLowerCase() !== modeFilter) return false;
+    if (levelFilter !== "all" && (s.experienceLevel ?? "rookie") !== levelFilter) return false;
     return true;
   });
 
@@ -87,6 +95,32 @@ export default function HistoryPage() {
   for (const s of [...completed].reverse()) {
     if ((s.overallScore ?? 0) >= 70) streak++;
     else break;
+  }
+
+  // Group filtered sessions by scenarioHash (where multiple sessions share the same hash)
+  const hashCounts: Record<string, number> = {};
+  for (const s of filtered) {
+    if (s.scenarioHash) hashCounts[s.scenarioHash] = (hashCounts[s.scenarioHash] ?? 0) + 1;
+  }
+  type SessionGroup =
+    | { type: "standalone"; session: DrillSession }
+    | { type: "scenario_set"; hash: string; sessions: DrillSession[] };
+  const sessionGroups: SessionGroup[] = [];
+  const seenHashes = new Set<string>();
+  for (const s of filtered) {
+    const hash = s.scenarioHash;
+    if (hash && hashCounts[hash] > 1) {
+      if (!seenHashes.has(hash)) {
+        seenHashes.add(hash);
+        sessionGroups.push({
+          type: "scenario_set",
+          hash,
+          sessions: filtered.filter((x) => x.scenarioHash === hash),
+        });
+      }
+    } else {
+      sessionGroups.push({ type: "standalone", session: s });
+    }
   }
 
   const chartData = completed.slice(-12).map((s) => ({
@@ -181,6 +215,20 @@ export default function HistoryPage() {
                     {f === "all" ? "All Modes" : f === "timeproof" ? "TimeProof" : "NEPQ"}
                   </button>
                 ))}
+                <span className="text-gray-700">|</span>
+                {(["all", "rookie", "rep", "vet"] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setLevelFilter(f)}
+                    className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
+                      levelFilter === f
+                        ? "bg-amber-600 text-white"
+                        : "bg-gray-800 text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    {f === "all" ? "All Levels" : f.charAt(0).toUpperCase() + f.slice(1)}
+                  </button>
+                ))}
               </div>
 
               {/* Session list */}
@@ -188,46 +236,145 @@ export default function HistoryPage() {
                 <p className="text-gray-500 text-sm text-center py-8">No drills yet. Start your first drill!</p>
               ) : (
                 <div className="space-y-2">
-                  {filtered.map((s) => {
-                    const scoreColor = getScoreColor(s.overallScore!);
-                    return (
-                      <div key={s.id} className="bg-gray-800 rounded-xl p-4 flex items-center gap-4">
-                        <div
-                          className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
-                          style={{ backgroundColor: `${scoreColor}20`, color: scoreColor }}
-                        >
-                          {s.overallScore}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-xs text-gray-400 capitalize">
-                              {s.trainingMode.toLowerCase()} ·{" "}
-                              {s.drillType.toLowerCase()}
-                            </span>
-                            {s.objectionVariation && (
-                              <span className="text-xs text-gray-500 truncate">
-                                · &ldquo;{s.objectionVariation}&rdquo;
+                  {sessionGroups.map((group, gi) => {
+                    if (group.type === "standalone") {
+                      const s = group.session;
+                      const scoreColor = getScoreColor(s.overallScore!);
+                      return (
+                        <div key={s.id} className="bg-gray-800 rounded-xl p-4 flex items-center gap-4">
+                          <div
+                            className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+                            style={{ backgroundColor: `${scoreColor}20`, color: scoreColor }}
+                          >
+                            {s.overallScore}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                              <span className="text-xs text-gray-400 capitalize">
+                                {s.trainingMode.toLowerCase()}
                               </span>
+                              {s.phaseId ? (
+                                <span className="text-xs text-amber-400/80">
+                                  · {s.phaseId.replace(/_/g, " ")}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-gray-500">
+                                  · {s.drillType.toLowerCase()}
+                                </span>
+                              )}
+                              {s.experienceLevel && (
+                                <span className="text-xs text-gray-500 capitalize">
+                                  · {s.experienceLevel}
+                                </span>
+                              )}
+                              {s.objectionVariation && (
+                                <span className="text-xs text-gray-500 truncate">
+                                  · &ldquo;{s.objectionVariation}&rdquo;
+                                </span>
+                              )}
+                            </div>
+                            {s.oneLiner && (
+                              <p className="text-xs text-gray-300 truncate italic">{s.oneLiner}</p>
                             )}
                           </div>
-                          {s.oneLiner && (
-                            <p className="text-xs text-gray-300 truncate italic">{s.oneLiner}</p>
-                          )}
+                          <div className="text-right shrink-0">
+                            <p className="text-xs font-semibold" style={{ color: scoreColor }}>
+                              {getScoreLabel(s.overallScore!)}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {new Date(s.startedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-right shrink-0">
-                          <p
-                            className="text-xs font-semibold"
-                            style={{ color: scoreColor }}
+                      );
+                    }
+
+                    // Scenario set group
+                    const isExpanded = expandedHashes.has(group.hash);
+                    const avgGroupScore = Math.round(
+                      group.sessions.reduce((a, s) => a + (s.overallScore ?? 0), 0) / group.sessions.length
+                    );
+                    const scenarioName = group.hash.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+                    const groupScoreColor = getScoreColor(avgGroupScore);
+
+                    return (
+                      <div key={`set_${group.hash}_${gi}`} className="rounded-xl border border-blue-700/30 overflow-hidden">
+                        {/* Group header */}
+                        <button
+                          onClick={() => setExpandedHashes((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(group.hash)) next.delete(group.hash);
+                            else next.add(group.hash);
+                            return next;
+                          })}
+                          className="w-full flex items-center gap-3 px-4 py-3 bg-blue-900/20 hover:bg-blue-900/30 transition-colors text-left"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold text-blue-400">Scenario set</span>
+                              <span className="text-xs text-gray-400">·</span>
+                              <span className="text-xs text-white font-medium truncate">{scenarioName}</span>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {group.sessions.length} phases · avg {avgGroupScore}
+                            </p>
+                          </div>
+                          <div
+                            className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                            style={{ backgroundColor: `${groupScoreColor}20`, color: groupScoreColor }}
                           >
-                            {getScoreLabel(s.overallScore!)}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            {new Date(s.startedAt).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
+                            {avgGroupScore}
+                          </div>
+                          {isExpanded ? (
+                            <ChevronUp className="w-4 h-4 text-gray-400 shrink-0" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />
+                          )}
+                        </button>
+
+                        {/* Expanded sessions */}
+                        {isExpanded && (
+                          <div className="divide-y divide-gray-700/50">
+                            {group.sessions.map((s) => {
+                              const scoreColor = getScoreColor(s.overallScore!);
+                              return (
+                                <div key={s.id} className="bg-gray-800/60 px-4 py-3 flex items-center gap-3">
+                                  <div
+                                    className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                                    style={{ backgroundColor: `${scoreColor}20`, color: scoreColor }}
+                                  >
+                                    {s.overallScore}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      {s.phaseId && (
+                                        <span className="text-xs text-amber-400/80 capitalize">
+                                          {s.phaseId.replace(/_/g, " ")}
+                                        </span>
+                                      )}
+                                      {s.experienceLevel && (
+                                        <span className="text-xs text-gray-500 capitalize">
+                                          · {s.experienceLevel}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {s.oneLiner && (
+                                      <p className="text-xs text-gray-400 truncate italic mt-0.5">{s.oneLiner}</p>
+                                    )}
+                                  </div>
+                                  <div className="text-right shrink-0">
+                                    <p className="text-xs font-semibold" style={{ color: scoreColor }}>
+                                      {getScoreLabel(s.overallScore!)}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      {new Date(s.startedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
                             })}
-                          </p>
-                        </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}

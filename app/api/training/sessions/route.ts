@@ -17,6 +17,9 @@ export async function POST(req: NextRequest) {
       objectionVariation,
       intensity,
       scenarioJson,
+      phaseId,
+      experienceLevel,
+      scenarioHash,
     } = body;
 
     const drill = await prisma.drillSession.create({
@@ -28,6 +31,9 @@ export async function POST(req: NextRequest) {
         objectionVariation,
         intensity,
         scenarioJson: scenarioJson ?? undefined,
+        phaseId: phaseId ?? null,
+        experienceLevel: experienceLevel ?? null,
+        scenarioHash: scenarioHash ?? null,
       },
     });
 
@@ -60,6 +66,9 @@ export async function GET(req: NextRequest) {
         intensity: true,
         overallScore: true,
         oneLiner: true,
+        phaseId: true,
+        experienceLevel: true,
+        scenarioHash: true,
         startedAt: true,
         completedAt: true,
       },

@@ -12,6 +12,7 @@ declare module "next-auth" {
       branch: string | null;
       profileComplete: boolean;
       mustChangePassword: boolean;
+      experienceLevel: string;
     } & import("next-auth").DefaultSession["user"];
   }
 
@@ -20,6 +21,7 @@ declare module "next-auth" {
     branch?: string | null;
     profileComplete?: boolean;
     mustChangePassword?: boolean;
+    experienceLevel?: string;
   }
 }
 
@@ -30,6 +32,7 @@ declare module "next-auth/jwt" {
     branch?: string | null;
     profileComplete?: boolean;
     mustChangePassword?: boolean;
+    experienceLevel?: string;
   }
 }
 
@@ -46,6 +49,7 @@ export default {
         token.branch = user.branch ?? null;
         token.profileComplete = user.profileComplete ?? false;
         token.mustChangePassword = user.mustChangePassword ?? false;
+        token.experienceLevel = user.experienceLevel ?? "rookie";
       }
       return token;
     },
@@ -56,6 +60,7 @@ export default {
         session.user.branch = token.branch as string | null;
         session.user.profileComplete = token.profileComplete as boolean;
         session.user.mustChangePassword = token.mustChangePassword as boolean;
+        session.user.experienceLevel = (token.experienceLevel as string) ?? "rookie";
       }
       return session;
     },

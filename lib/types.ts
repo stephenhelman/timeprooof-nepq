@@ -129,4 +129,17 @@ export interface StepAdvanceSignal {
 export interface CoachHintWithSignal {
   hint: string;
   stepSignal: StepAdvanceSignal;
+  phaseComplete: boolean;
+  phaseCompleteReason: string;
+  behaviorsAchieved: string[];
+}
+
+export type ExperienceLevel = "rookie" | "rep" | "vet";
+
+export interface ExperienceLevelConfig {
+  id: ExperienceLevel;
+  label: string;
+  description: string;
+  coachingApproach: string;
+  robertBehavior: string;
 }
