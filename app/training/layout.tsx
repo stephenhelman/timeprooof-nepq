@@ -37,6 +37,12 @@ export default async function TrainingLayout({
             >
               Training
             </Link>
+            <Link
+              href="/training/scenarios"
+              className="text-sm text-gray-400 hover:text-white transition-colors flex items-center"
+            >
+              Scenario Library
+            </Link>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-gray-500">

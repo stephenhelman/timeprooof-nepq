@@ -5,6 +5,11 @@ import HistoryChart from "@/components/training/HistoryChart";
 import ScoreRing from "@/components/training/ScoreRing";
 import { getScoreColor, getScoreLabel } from "@/lib/scoring";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { PRESET_SCENARIOS } from "@/lib/presetScenarios";
+
+const PRESET_TITLE_MAP = Object.fromEntries(
+  PRESET_SCENARIOS.map((p) => [p.slug, p.title])
+);
 
 interface DrillSession {
   id: string;
@@ -18,6 +23,7 @@ interface DrillSession {
   phaseId?: string | null;
   experienceLevel?: string | null;
   scenarioHash?: string | null;
+  presetScenarioSlug?: string | null;
   startedAt: string;
   completedAt?: string;
 }
@@ -36,6 +42,7 @@ type Tab = "history" | "leaderboard";
 type PeriodFilter = "week" | "month" | "all";
 type ModeFilter = "all" | "timeproof" | "nepq";
 type LevelFilter = "all" | "rookie" | "rep" | "vet";
+type SourceFilter = "all" | "preset" | "random";
 
 export default function HistoryPage() {
   const [tab, setTab] = useState<Tab>("history");
@@ -51,6 +58,7 @@ export default function HistoryPage() {
   const [lbMode, setLbMode] = useState<ModeFilter>("all");
   const [lbPeriod, setLbPeriod] = useState<PeriodFilter>("all");
   const [expandedHashes, setExpandedHashes] = useState<Set<string>>(new Set());
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
 
   useEffect(() => {
     fetch("/api/training/sessions")
@@ -81,6 +89,8 @@ export default function HistoryPage() {
     if (typeFilter !== "all" && s.drillType.toLowerCase() !== typeFilter) return false;
     if (modeFilter !== "all" && s.trainingMode.toLowerCase() !== modeFilter) return false;
     if (levelFilter !== "all" && (s.experienceLevel ?? "rookie") !== levelFilter) return false;
+    if (sourceFilter === "preset" && !s.presetScenarioSlug) return false;
+    if (sourceFilter === "random" && s.presetScenarioSlug) return false;
     return true;
   });
 
@@ -229,6 +239,20 @@ export default function HistoryPage() {
                     {f === "all" ? "All Levels" : f.charAt(0).toUpperCase() + f.slice(1)}
                   </button>
                 ))}
+                <span className="text-gray-700">|</span>
+                {(["all", "preset", "random"] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setSourceFilter(f)}
+                    className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
+                      sourceFilter === f
+                        ? "bg-green-700 text-white"
+                        : "bg-gray-800 text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    {f === "all" ? "All Sources" : f.charAt(0).toUpperCase() + f.slice(1)}
+                  </button>
+                ))}
               </div>
 
               {/* Session list */}
@@ -250,6 +274,11 @@ export default function HistoryPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                              {s.presetScenarioSlug && PRESET_TITLE_MAP[s.presetScenarioSlug] && (
+                                <span className="text-xs font-medium text-white">
+                                  {PRESET_TITLE_MAP[s.presetScenarioSlug]}
+                                </span>
+                              )}
                               <span className="text-xs text-gray-400 capitalize">
                                 {s.trainingMode.toLowerCase()}
                               </span>

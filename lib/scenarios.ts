@@ -229,12 +229,37 @@ const LOCATIONS = [
   "chimney base", "pipe vent area", "rake edge", "soffit line", "attic",
 ];
 
-export function generateScenario(): DrillScenario {
-  const personality = pick([
-    "trusting", "skeptical", "price-sensitive", "prior-bad-experience", "no-strong-bias",
-  ] as HomeownerProfile["personality"][]);
+// Personality types unlocked by mastering specific preset scenarios.
+// Default (no unlocks): only trusting + no-strong-bias, minor/moderate severity only.
+const PERSONALITY_UNLOCK_MAP: Record<string, HomeownerProfile["personality"]> = {
+  "the-open-door": "trusting",
+  "the-price-shopper": "price-sensitive",
+  "the-researcher": "skeptical",
+  "the-procrastinator": "no-strong-bias",
+  "the-burned-homeowner": "prior-bad-experience",
+};
 
-  const severity = pick(["none", "minor", "moderate", "severe"] as DamageSeverity[]);
+const SEVERITY_UNLOCK_SLUGS = new Set(["the-storm-victim"]);
+
+export function generateScenario(options?: { unlockedSlugs?: string[] }): DrillScenario {
+  const unlockedSlugs = options?.unlockedSlugs ?? [];
+
+  // Determine which personalities are available
+  let availablePersonalities: HomeownerProfile["personality"][] = ["trusting", "no-strong-bias"];
+  for (const [slug, personality] of Object.entries(PERSONALITY_UNLOCK_MAP)) {
+    if (unlockedSlugs.includes(slug) && !availablePersonalities.includes(personality)) {
+      availablePersonalities.push(personality);
+    }
+  }
+
+  // Determine available severities
+  const severeUnlocked = unlockedSlugs.some((s) => SEVERITY_UNLOCK_SLUGS.has(s));
+  const availableSeverities: DamageSeverity[] = severeUnlocked
+    ? ["none", "minor", "moderate", "severe"]
+    : ["none", "minor", "moderate"];
+
+  const personality = pick(availablePersonalities);
+  const severity = pick(availableSeverities);
 
   const homeowner: HomeownerProfile = {
     name: pick(NAMES),

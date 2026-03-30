@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { PRESET_SCENARIOS } from "../lib/presetScenarios";
 
 const prisma = new PrismaClient();
 
@@ -44,6 +45,35 @@ async function main() {
     },
   });
   console.log("Created rep:", rep.email);
+
+  // Seed preset scenarios
+  for (const def of PRESET_SCENARIOS) {
+    await prisma.presetScenario.upsert({
+      where: { slug: def.slug },
+      update: {
+        tier: def.tier,
+        orderInTier: def.orderInTier,
+        title: def.title,
+        subtitle: def.subtitle,
+        description: def.description,
+        challenge: def.challenge,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        scenarioJson: def.scenario as any,
+      },
+      create: {
+        slug: def.slug,
+        tier: def.tier,
+        orderInTier: def.orderInTier,
+        title: def.title,
+        subtitle: def.subtitle,
+        description: def.description,
+        challenge: def.challenge,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        scenarioJson: def.scenario as any,
+      },
+    });
+  }
+  console.log(`Seeded ${PRESET_SCENARIOS.length} preset scenarios.`);
 
   console.log("Seeding complete.");
 }

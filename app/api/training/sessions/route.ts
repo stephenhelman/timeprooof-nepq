@@ -20,6 +20,8 @@ export async function POST(req: NextRequest) {
       phaseId,
       experienceLevel,
       scenarioHash,
+      presetScenarioId,
+      presetScenarioSlug,
     } = body;
 
     const drill = await prisma.drillSession.create({
@@ -34,6 +36,8 @@ export async function POST(req: NextRequest) {
         phaseId: phaseId ?? null,
         experienceLevel: experienceLevel ?? null,
         scenarioHash: scenarioHash ?? null,
+        presetScenarioId: presetScenarioId ?? null,
+        presetScenarioSlug: presetScenarioSlug ?? null,
       },
     });
 
@@ -69,6 +73,8 @@ export async function GET(req: NextRequest) {
         phaseId: true,
         experienceLevel: true,
         scenarioHash: true,
+        presetScenarioId: true,
+        presetScenarioSlug: true,
         startedAt: true,
         completedAt: true,
       },

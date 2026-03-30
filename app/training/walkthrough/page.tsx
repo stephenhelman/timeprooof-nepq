@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import ModeToggle from "@/components/training/ModeToggle";
 import MicButton from "@/components/training/MicButton";
 import ChatTranscript from "@/components/training/ChatTranscript";
@@ -15,7 +16,7 @@ import { transcribeAudio, callClaude, speakText, createSession, saveMessage, com
 import { homeownerSystemPrompt, coachHintPrompt, debriefPrompt } from "@/lib/prompts";
 import { parseCoachResponse } from "@/lib/stepAdvance";
 import type { TrainingMode, ChatMessage, DebriefResult, DrillScenario, ExperienceLevel } from "@/lib/types";
-import { ChevronDown, ChevronUp, RefreshCw, Type, Mic, Lock, ClipboardList } from "lucide-react";
+import { ChevronDown, ChevronUp, RefreshCw, Type, Mic, Lock, ClipboardList, Check } from "lucide-react";
 import TTSProviderPicker from "@/components/training/TTSProviderPicker";
 
 type Screen = "setup" | "report" | "drill" | "debrief";
@@ -27,13 +28,37 @@ const SEVERITY_COLORS = {
   severe: "#ef4444",
 };
 
+interface PresetScenarioItem {
+  id: string;
+  slug: string;
+  tier: number;
+  title: string;
+  subtitle: string;
+  description: string;
+  challenge: string;
+  unlocked: boolean;
+  scenarioJson: DrillScenario;
+  progress: { mastered: boolean; attempts: number; rollingAverage: number | null } | null;
+}
+
 export default function WalkthroughDrillPage() {
   const { data: sessionData } = useSession();
+  const searchParams = useSearchParams();
   const profileLevel = (sessionData?.user?.experienceLevel ?? "rookie") as ExperienceLevel;
 
   const [screen, setScreen] = useState<Screen>("setup");
   const [mode, setMode] = useState<TrainingMode>("timeproof");
   const [scenario, setScenario] = useState<DrillScenario | null>(null);
+
+  // Entry mode: preset or random
+  const [entryMode, setEntryMode] = useState<"preset" | "random">("preset");
+  const [presetScenarios, setPresetScenarios] = useState<PresetScenarioItem[]>([]);
+  const [tier3Unlocked, setTier3Unlocked] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState<PresetScenarioItem | null>(null);
+  const [presetsLoading, setPresetsLoading] = useState(true);
+
+  // Unlock celebration modal
+  const [unlockModal, setUnlockModal] = useState<{ tier: 2 | 3 } | null>(null);
 
   // Phase & experience level selectors
   const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null); // null = full walkthrough
@@ -44,6 +69,33 @@ export default function WalkthroughDrillPage() {
   useEffect(() => {
     setExperienceLevel(profileLevel);
   }, [profileLevel]);
+
+  // Load preset scenarios
+  useEffect(() => {
+    fetch("/api/training/scenarios")
+      .then((r) => r.json())
+      .then((d: { scenarios: PresetScenarioItem[]; tier3Unlocked: boolean }) => {
+        setPresetScenarios(d.scenarios ?? []);
+        setTier3Unlocked(d.tier3Unlocked ?? false);
+        setPresetsLoading(false);
+      })
+      .catch(() => setPresetsLoading(false));
+  }, []);
+
+  // Handle ?preset=slug query param from scenario library
+  useEffect(() => {
+    const presetSlug = searchParams.get("preset");
+    if (presetSlug && presetScenarios.length > 0) {
+      const found = presetScenarios.find((p) => p.slug === presetSlug);
+      if (found?.unlocked) {
+        setSelectedPreset(found);
+        setScenario(found.scenarioJson);
+        setEntryMode("preset");
+      }
+    }
+    const urlMode = searchParams.get("mode");
+    if (urlMode === "random") setEntryMode("random");
+  }, [searchParams, presetScenarios]);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [coachHint, setCoachHint] = useState<string | null>(null);
@@ -90,7 +142,10 @@ export default function WalkthroughDrillPage() {
       : null;
 
   function handleGenerate() {
-    setScenario(generateScenario());
+    const masteredSlugs = presetScenarios
+      .filter((p) => p.progress?.mastered)
+      .map((p) => p.slug);
+    setScenario(generateScenario({ unlockedSlugs: masteredSlugs }));
   }
 
   async function startDrill() {
@@ -128,6 +183,8 @@ export default function WalkthroughDrillPage() {
         phaseId: selectedPhaseId ?? undefined,
         experienceLevel,
         scenarioHash: hash,
+        presetScenarioId: selectedPreset?.id ?? undefined,
+        presetScenarioSlug: selectedPreset?.slug ?? undefined,
       } as Parameters<typeof createSession>[0]);
       setSessionId(id);
       setCurrentPhaseIndex(startIndex);
@@ -342,6 +399,26 @@ export default function WalkthroughDrillPage() {
       const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
       const result: DebriefResult = JSON.parse(cleaned);
       await completeSession(sessionId, result);
+
+      // Post progress for preset scenario drills
+      if (selectedPreset?.slug && result.overallScore != null) {
+        try {
+          const progressRes = await fetch(
+            `/api/training/scenarios/${selectedPreset.slug}/progress`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ score: result.overallScore }),
+            }
+          );
+          const progressData = await progressRes.json();
+          if (progressData.unlocks?.tier2) setUnlockModal({ tier: 2 });
+          else if (progressData.unlocks?.tier3) setUnlockModal({ tier: 3 });
+        } catch {
+          // Progress update failure is non-fatal
+        }
+      }
+
       setDebrief(result);
       setScreen("debrief");
     } catch {
@@ -384,17 +461,83 @@ export default function WalkthroughDrillPage() {
     setReviewMode(false);
     setPhaseCompleteReason("");
     setBehaviorsAchieved([]);
+    setSelectedPreset(null);
+    setUnlockModal(null);
   }
 
   const levelConfig = EXPERIENCE_LEVELS.find((l) => l.id === experienceLevel) ?? EXPERIENCE_LEVELS[0];
 
+  // ── Unlock Modal ──────────────────────────────────────────────────────────
+  if (unlockModal) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+        <div className="bg-gray-800 border border-amber-500/40 rounded-2xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl">
+          <div className="text-4xl mb-3">🎉</div>
+          <p className="text-amber-400 font-bold text-lg mb-1">
+            Tier {unlockModal.tier} Unlocked!
+          </p>
+          <p className="text-gray-300 text-sm mb-2">
+            {unlockModal.tier === 2
+              ? "You've mastered all Foundation scenarios. Challenge scenarios are now available."
+              : "You've mastered all Challenge scenarios. Random drilling is now unlocked."}
+          </p>
+          <div className="flex gap-2 mt-5">
+            <button
+              onClick={() => { setUnlockModal(null); resetAll(); }}
+              className="flex-1 py-2 rounded-xl text-xs font-medium bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors"
+            >
+              Continue
+            </button>
+            <button
+              onClick={() => { window.location.href = "/training/scenarios"; }}
+              className="flex-1 py-2 rounded-xl text-xs font-semibold transition-colors"
+              style={{ backgroundColor: "#C8A84B", color: "#0B1F3A" }}
+            >
+              View {unlockModal.tier === 2 ? "Challenge" : "Random"} Scenarios
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ── Setup Screen ──────────────────────────────────────────────────────────
   if (screen === "setup") {
+    const tier1Presets = presetScenarios.filter((p) => p.tier === 1);
+    const tier2Presets = presetScenarios.filter((p) => p.tier === 2);
+
     return (
       <div className="space-y-6 max-w-2xl mx-auto">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-white">Full Walkthrough</h1>
           <ModeToggle mode={mode} onChange={setMode} />
+        </div>
+
+        {/* Entry Mode Selector */}
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">How do you want to drill?</p>
+          <div className="grid grid-cols-2 gap-2">
+            {(["preset", "random"] as const).map((em) => (
+              <button
+                key={em}
+                onClick={() => { setEntryMode(em); setSelectedPreset(null); setScenario(null); }}
+                className={`px-4 py-3 rounded-xl border text-left transition-colors ${
+                  entryMode === em
+                    ? "border-amber-500 bg-amber-500/10"
+                    : "border-gray-700 bg-gray-800/50 hover:border-gray-600"
+                }`}
+              >
+                <p className="text-sm font-medium text-white">
+                  {em === "preset" ? "Preset Library" : "Random Scenario"}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {em === "preset"
+                    ? "Master specific homeowner types in order"
+                    : "Generate a unique scenario each session"}
+                </p>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Phase Selector */}
@@ -520,47 +663,126 @@ export default function WalkthroughDrillPage() {
           <p className="text-xs text-gray-500">{levelConfig.coachingApproach}</p>
         </div>
 
-        {/* Scenario */}
-        <div className="space-y-3">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Scenario</p>
-
-          {/* Saved scenario reuse card */}
-          {savedScenario && !scenario && (
-            <div className="rounded-xl border border-blue-700/50 bg-blue-900/20 p-4">
-              <p className="text-xs text-blue-400 font-semibold mb-1">Saved scenario available</p>
-              <p className="text-sm text-white font-medium">{savedScenario.homeowner.name}</p>
-              <p className="text-xs text-gray-400">{savedScenario.homeowner.ageRange} · {savedScenario.roof.age}-year roof</p>
-              <div className="flex gap-2 mt-3">
-                <button
-                  onClick={() => setScenario(savedScenario)}
-                  className="flex-1 py-2 rounded-lg text-xs font-semibold bg-blue-700 hover:bg-blue-600 text-white transition-colors"
-                >
-                  Use this scenario
-                </button>
-                <button
-                  onClick={() => {
-                    clearScenario();
-                    setSavedScenario(null);
-                    handleGenerate();
-                  }}
-                  className="flex-1 py-2 rounded-lg text-xs font-medium bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors"
-                >
-                  Generate new
-                </button>
+        {/* Scenario — Preset Mode */}
+        {entryMode === "preset" && (
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Select Scenario</p>
+            {presetsLoading ? (
+              <div className="h-20 bg-gray-800 rounded-xl animate-pulse" />
+            ) : (
+              <div className="space-y-4">
+                {[
+                  { label: "Tier 1 — Foundation", items: tier1Presets },
+                  { label: "Tier 2 — Challenge", items: tier2Presets },
+                ].map(({ label, items }) => (
+                  <div key={label}>
+                    <p className="text-xs text-gray-500 mb-2">{label}</p>
+                    <div className="space-y-1.5">
+                      {items.map((p) => {
+                        const isSelected = selectedPreset?.slug === p.slug;
+                        if (!p.unlocked) {
+                          return (
+                            <div key={p.slug} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-800 bg-gray-900/40 opacity-50">
+                              <Lock className="w-3.5 h-3.5 text-gray-600" />
+                              <span className="text-xs text-gray-500">{p.title}</span>
+                            </div>
+                          );
+                        }
+                        return (
+                          <button
+                            key={p.slug}
+                            onClick={() => {
+                              setSelectedPreset(p);
+                              setScenario(p.scenarioJson);
+                            }}
+                            className={`w-full text-left px-4 py-3 rounded-xl border transition-colors ${
+                              isSelected
+                                ? "border-amber-500 bg-amber-500/10"
+                                : "border-gray-700 bg-gray-800/50 hover:border-gray-600"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  {p.progress?.mastered && (
+                                    <Check className="w-3 h-3 text-green-500" strokeWidth={3} />
+                                  )}
+                                  <span className="text-sm font-medium text-white">{p.title}</span>
+                                </div>
+                                <p className="text-xs text-gray-400 mt-0.5">{p.subtitle}</p>
+                              </div>
+                              {p.progress && (
+                                <span className={`text-xs shrink-0 ml-2 ${p.progress.mastered ? "text-green-500" : "text-gray-500"}`}>
+                                  {p.progress.mastered ? "Mastered" : `Avg: ${p.progress.rollingAverage != null ? Math.round(p.progress.rollingAverage) : "—"}`}
+                                </span>
+                              )}
+                            </div>
+                            {isSelected && (
+                              <p className="text-xs text-gray-400 mt-2 italic">{p.challenge}</p>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
+        )}
 
-          {(!savedScenario || scenario) && (
-            <button
-              onClick={handleGenerate}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-colors bg-gray-800 hover:bg-gray-700 text-white"
-            >
-              <RefreshCw className="w-4 h-4" />
-              {scenario ? "Regenerate Scenario" : "Generate Scenario"}
-            </button>
-          )}
-        </div>
+        {/* Scenario — Random Mode */}
+        {entryMode === "random" && (
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Scenario</p>
+
+            {!tier3Unlocked && (
+              <div className="rounded-xl border border-gray-700 bg-gray-800/40 p-4 flex items-center gap-3">
+                <Lock className="w-4 h-4 text-gray-600 shrink-0" />
+                <div>
+                  <p className="text-sm text-gray-400">Random drilling is locked</p>
+                  <p className="text-xs text-gray-600 mt-0.5">Complete all Tier 2 scenarios to unlock</p>
+                </div>
+              </div>
+            )}
+
+            {tier3Unlocked && (
+              <>
+                {/* Saved scenario reuse card */}
+                {savedScenario && !scenario && (
+                  <div className="rounded-xl border border-blue-700/50 bg-blue-900/20 p-4">
+                    <p className="text-xs text-blue-400 font-semibold mb-1">Saved scenario available</p>
+                    <p className="text-sm text-white font-medium">{savedScenario.homeowner.name}</p>
+                    <p className="text-xs text-gray-400">{savedScenario.homeowner.ageRange} · {savedScenario.roof.age}-year roof</p>
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => setScenario(savedScenario)}
+                        className="flex-1 py-2 rounded-lg text-xs font-semibold bg-blue-700 hover:bg-blue-600 text-white transition-colors"
+                      >
+                        Use this scenario
+                      </button>
+                      <button
+                        onClick={() => { clearScenario(); setSavedScenario(null); handleGenerate(); }}
+                        className="flex-1 py-2 rounded-lg text-xs font-medium bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors"
+                      >
+                        Generate new
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {(!savedScenario || scenario) && (
+                  <button
+                    onClick={handleGenerate}
+                    className="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-colors bg-gray-800 hover:bg-gray-700 text-white"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    {scenario ? "Regenerate Scenario" : "Generate Scenario"}
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        )}
 
         {scenario && (
           <div
