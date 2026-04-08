@@ -136,6 +136,28 @@ export interface CoachHintWithSignal {
 
 export type ExperienceLevel = "rookie" | "rep" | "vet";
 
+// The shared context object injected into every prompt.
+// Represents everything that has already happened before the scene starts.
+export interface PresentationContext {
+  // Scenario
+  homeownerName: string;
+  homeownerPersonality: string;
+  roofAge: number;
+  roofSeverity: string;
+  damageFindings: string[]; // rep-narration strings from DamageFinding[]
+  urgencySummary: string;
+
+  // What has already been covered before this scene
+  phasesCompleted: string[]; // labels of phases already done
+  keyMomentsFromPriorPhases: string[]; // specific things Robert said or agreed to
+  robertCurrentMood: string; // his emotional state entering this scene
+  robertExpectation: string; // what he thinks is about to happen
+
+  // For objection drills only
+  objectionTrigger?: string; // what specifically triggered this objection
+  presentationMoment?: string; // label of the objection context card selected
+}
+
 export interface ExperienceLevelConfig {
   id: ExperienceLevel;
   label: string;

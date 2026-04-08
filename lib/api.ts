@@ -51,6 +51,19 @@ export async function callClaude(
   return data.content?.[0]?.text ?? "";
 }
 
+// Singleton AudioContext — mobile browsers require audio context to be
+// created once and resumed (not re-created) on each playback. Creating a
+// new AudioContext inside an async chain after a user gesture ends causes
+// the context to start in "suspended" state and produce silence on mobile.
+let _audioCtx: AudioContext | null = null;
+
+function getAudioContext(): AudioContext {
+  if (!_audioCtx || _audioCtx.state === "closed") {
+    _audioCtx = new AudioContext();
+  }
+  return _audioCtx;
+}
+
 export async function speakText(text: string): Promise<void> {
   const isDev = process.env.NODE_ENV === "development";
 
@@ -103,7 +116,14 @@ export async function speakText(text: string): Promise<void> {
   }
 
   const arrayBuffer = await res.arrayBuffer();
-  const audioContext = new AudioContext();
+
+  // Use singleton context and resume it — this is the fix for mobile Chrome/Safari
+  // which suspends AudioContext when not within an active user gesture frame.
+  const audioContext = getAudioContext();
+  if (audioContext.state === "suspended") {
+    await audioContext.resume();
+  }
+
   const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
   const source = audioContext.createBufferSource();
   source.buffer = audioBuffer;

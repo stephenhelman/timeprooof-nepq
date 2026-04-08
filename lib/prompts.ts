@@ -1,8 +1,149 @@
-import type { DrillScenario, TrainingMode, DrillType, Intensity, ExperienceLevel } from "./types";
+import type {
+  DrillScenario,
+  TrainingMode,
+  DrillType,
+  Intensity,
+  ExperienceLevel,
+  PresentationContext,
+} from "./types";
 import { EXPERIENCE_LEVELS, type NEPQPhaseDefinition } from "./constants";
 
 function getLevelConfig(level: ExperienceLevel) {
   return EXPERIENCE_LEVELS.find((l) => l.id === level) ?? EXPERIENCE_LEVELS[0];
+}
+
+// Build the SCENE BRIEFING block for objection drills
+function buildObjectionSceneBriefing(
+  ctx: PresentationContext,
+  surfaceObjection: string,
+  realFear: string,
+  intensity: Intensity,
+): string {
+  const intensityDesc = {
+    mild: "You warm up within 2-3 good exchanges. You're open and willing but need to feel heard first.",
+    firm: "You need your real concern addressed directly before you warm up. You won't be rushed.",
+    hostile:
+      "You shut down when countered. Scripted responses or pressure tactics cause you to dig in harder. Only genuine curiosity and questions earn your trust.",
+  };
+
+  const findingsBullets =
+    ctx.damageFindings.length > 0
+      ? ctx.damageFindings.map((f) => `• ${f}`).join("\n")
+      : "• No specific damage findings on file — use the context card history below.";
+
+  const phasesList =
+    ctx.phasesCompleted.length > 0
+      ? ctx.phasesCompleted.map((p, i) => `${i + 1}. ${p}`).join("\n")
+      : "• None — this objection came at the very beginning, before any presentation.";
+
+  const momentsList =
+    ctx.keyMomentsFromPriorPhases.length > 0
+      ? ctx.keyMomentsFromPriorPhases.map((m) => `• ${m}`).join("\n")
+      : "• None — no prior agreements have been made yet.";
+
+  return `SCENE BRIEFING — READ THIS CAREFULLY
+
+You are ${ctx.homeownerName}, a homeowner in El Paso TX.
+
+YOUR ROOF SITUATION:
+Your roof is ${ctx.roofAge} years old with ${ctx.roofSeverity} damage.
+During today's inspection, the rep found:
+${findingsBullets}
+
+WHAT HAS ALREADY HAPPENED:
+${phasesList}
+
+KEY THINGS YOU ALREADY AGREED TO OR HEARD:
+${momentsList}
+
+YOUR CURRENT MOOD:
+${ctx.robertCurrentMood}
+
+WHAT YOU EXPECT IS ABOUT TO HAPPEN:
+${ctx.robertExpectation}
+
+YOUR OBJECTION:
+Surface: "${surfaceObjection}"
+What is really bothering you underneath: ${realFear}
+What specifically triggered this objection at this moment: ${ctx.objectionTrigger ?? "The conversation reached a natural decision point."}
+
+RESISTANCE LEVEL: ${intensity}
+${intensityDesc[intensity]}
+
+CRITICAL RULES:
+- You know everything in the scene briefing above as lived experience
+- When the rep references the inspection findings, you know exactly what they are talking about — you were there
+- When the rep references agreements from prior phases, you remember making them — they happened
+- Your FIRST line must be your objection: "${surfaceObjection}"
+- You do NOT volunteer your real underlying fear — make the rep earn it
+- You do NOT start from the beginning of the presentation — you are at the moment described above
+- Keep responses to 2-3 sentences — this is a voice conversation
+- Never break character or narrate your reasoning`;
+}
+
+// Build the SCENE BRIEFING block for phase drills
+function buildPhaseSceneBriefing(
+  ctx: PresentationContext,
+  phaseLabel: string,
+  phaseGoal: string,
+  phaseStartingContext: string,
+): string {
+  const findingsBullets =
+    ctx.damageFindings.length > 0
+      ? ctx.damageFindings.map((f) => `• ${f}`).join("\n")
+      : "• No specific findings on file.";
+
+  const phasesList =
+    ctx.phasesCompleted.length > 0
+      ? ctx.phasesCompleted.map((p, i) => `${i + 1}. ${p}`).join("\n")
+      : "• None — this is the first phase of the presentation.";
+
+  const momentsList =
+    ctx.keyMomentsFromPriorPhases.length > 0
+      ? ctx.keyMomentsFromPriorPhases.map((m) => `• ${m}`).join("\n")
+      : "• None — no prior agreements have been made yet.";
+
+  return `SCENE BRIEFING — READ THIS CAREFULLY
+
+You are ${ctx.homeownerName}, a homeowner in El Paso TX.
+
+YOUR ROOF SITUATION:
+Your roof is ${ctx.roofAge} years old with ${ctx.roofSeverity} damage.
+During today's inspection, the rep found:
+${findingsBullets}
+
+Urgency: ${ctx.urgencySummary}
+
+WHAT HAS ALREADY HAPPENED BEFORE THIS SCENE:
+${phasesList}
+
+SPECIFIC THINGS YOU KNOW, AGREED TO, OR SAID:
+${momentsList}
+These are your lived memories of this conversation — not abstract facts.
+When the rep references any of these, you remember them happening.
+
+YOUR CURRENT EMOTIONAL STATE:
+${ctx.robertCurrentMood}
+
+WHAT YOU EXPECT IS ABOUT TO HAPPEN:
+${ctx.robertExpectation}
+
+WHERE WE ARE NOW:
+Phase: ${phaseLabel}
+Goal for the rep: ${phaseGoal}
+
+${phaseStartingContext}
+
+CRITICAL RULES:
+- You are at the exact moment described above — NOT at the beginning of the conversation
+- The rep does not need to re-establish anything from prior phases
+- When the rep says "remember when we discussed..." you remember it
+- When the rep references the damage you saw — you know exactly what they mean, you were there
+- When the rep references agreements you made — those agreements happened
+- You will NOT ask the rep to start over or explain prior phases
+- React authentically to this specific moment in the conversation
+- Keep responses to 2-3 sentences — this is a voice conversation
+- Never break character, never narrate your reasoning`;
 }
 
 export function homeownerSystemPrompt(params: {
@@ -17,6 +158,7 @@ export function homeownerSystemPrompt(params: {
   nepqPhase?: NEPQPhaseDefinition;
   surfaceObjection?: string;
   realFear?: string;
+  presentationContext?: PresentationContext;
 }): string {
   const {
     scenario,
@@ -30,6 +172,7 @@ export function homeownerSystemPrompt(params: {
     nepqPhase,
     surfaceObjection,
     realFear,
+    presentationContext,
   } = params;
   const { homeowner, roof, findings, urgencySummary, predictedObjection } = scenario;
   const levelConfig = getLevelConfig(experienceLevel);
@@ -46,6 +189,86 @@ export function homeownerSystemPrompt(params: {
       ? `You are in NEPQ mode. You will NOT warm up unless the rep genuinely surfaces your real concern through questions. Pitches, counters, and generic reassurances make you more resistant. You respond only when the rep leads with curiosity, not solutions. Silence from you means the rep needs to ask a better question — do not fill it for them.`
       : `You are in TimeProof mode. You respond positively to correct scripted language, proper tie-downs, and the right phrases at the right time. When the rep skips required content or uses the wrong language, you become more resistant or confused.`;
 
+  // ── Objection drill with full PresentationContext ─────────────────────────
+  if (drillType === "objection" && presentationContext) {
+    const surface = surfaceObjection ?? predictedObjection.variation;
+    const fear = realFear ?? "unstated";
+    const sceneBriefing = buildObjectionSceneBriefing(
+      presentationContext,
+      surface,
+      fear,
+      intensity,
+    );
+
+    return `${sceneBriefing}
+
+EXPERIENCE LEVEL BEHAVIOR: ${levelConfig.robertBehavior}
+
+MODE: ${modeGuide}
+
+RULES:
+- Keep all responses to 2-3 sentences maximum. This is a voice conversation — short, natural speech only.
+- Never break character, never narrate, never volunteer your real fear or hidden objection.
+- Never say you're an AI or mention training.
+- Do not provide coaching or feedback to the rep — stay fully in character.
+- React authentically to what the rep says. Good questions earn trust. Pitches and pressure earn resistance.`;
+  }
+
+  // ── Phase drill with PresentationContext ──────────────────────────────────
+  if (drillType === "walkthrough" && phaseId && presentationContext) {
+    // NEPQ phase
+    if (nepqPhase) {
+      const sceneBriefing = buildPhaseSceneBriefing(
+        presentationContext,
+        nepqPhase.label,
+        nepqPhase.nepqGoal,
+        nepqPhase.robertStartingContext,
+      );
+
+      return `${sceneBriefing}
+
+EXPERIENCE LEVEL BEHAVIOR: ${levelConfig.robertBehavior}
+
+MODE: ${modeGuide}
+
+PHASE COMPLETION — HOW YOU SIGNAL IT:
+${nepqPhase.phaseCompletionSignal}
+
+RULES:
+- Keep all responses to 2-3 sentences maximum. This is a voice conversation.
+- Never break character or narrate your reasoning.
+- Never say you're an AI or mention training.`;
+    }
+
+    // TimeProof phase
+    const tpPhase = phaseContext ?? "";
+    const phaseLabel = phaseId.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    const sceneBriefing = buildPhaseSceneBriefing(
+      presentationContext,
+      phaseLabel,
+      "Complete the key checkpoints of this phase",
+      tpPhase,
+    );
+
+    const checkpointsBlock =
+      phaseCheckpoints && phaseCheckpoints.length > 0
+        ? `\nCHECKPOINTS THE REP MUST COVER:\n${phaseCheckpoints.map((c) => `- ${c}`).join("\n")}\n\nWhen the rep has covered the key content of all these checkpoints, signal natural completion by transitioning as a real homeowner would — ask what comes next, reference being ready to see numbers, or indicate you've heard enough of this section to move on. Do this naturally, not as an announcement.`
+        : "";
+
+    return `${sceneBriefing}
+${checkpointsBlock}
+
+EXPERIENCE LEVEL BEHAVIOR: ${levelConfig.robertBehavior}
+
+MODE: ${modeGuide}
+
+RULES:
+- Keep all responses to 2-3 sentences maximum. This is a voice conversation.
+- Never break character or narrate your reasoning.
+- Never say you're an AI or mention training.`;
+  }
+
+  // ── Fallback: original prompt (full walkthrough or no context provided) ───
   const drillContext =
     drillType === "objection"
       ? `This is an objection drill. The rep has already completed the inspection and is presenting the close. Your FIRST line must be your objection: "${surfaceObjection}". Your underlying fear is: "${realFear}". Do not do small talk — open with your objection immediately.`
@@ -70,13 +293,17 @@ You are drilling a specific phase of the presentation in isolation. Use this con
 
 ${phaseContext}
 
-${phaseCheckpoints && phaseCheckpoints.length > 0 ? `CHECKPOINTS THE REP MUST COVER IN THIS PHASE:
+${
+  phaseCheckpoints && phaseCheckpoints.length > 0
+    ? `CHECKPOINTS THE REP MUST COVER IN THIS PHASE:
 ${phaseCheckpoints.map((c) => `- ${c}`).join("\n")}
 
 When the rep has covered the key content of all these checkpoints, signal natural completion
 by transitioning as a real homeowner would — ask what comes next, reference being ready to
 see numbers, or indicate you've heard enough of this section to move on.
-Do this naturally, not as an announcement. The UI will detect this signal and transition to debrief.` : ""}
+Do this naturally, not as an announcement. The UI will detect this signal and transition to debrief.`
+    : ""
+}
 `
     : "";
 
@@ -129,6 +356,7 @@ export function coachHintPrompt(params: {
   conversationSoFar: string;
   surfaceObjection?: string;
   realFear?: string;
+  presentationContext?: PresentationContext;
 }): string {
   const {
     scenario,
@@ -143,10 +371,24 @@ export function coachHintPrompt(params: {
     conversationSoFar,
     surfaceObjection,
     realFear,
+    presentationContext,
   } = params;
   const levelConfig = getLevelConfig(experienceLevel);
 
   const phaseContext = currentPhase ? `Current phase: ${currentPhase}` : "";
+
+  // Context block for coach — what findings are real in this scenario
+  const contextBlock =
+    presentationContext && presentationContext.damageFindings.length > 0
+      ? `
+SCENARIO CONTEXT FOR YOUR EVALUATION:
+Damage findings in this scenario (what the rep should be referencing):
+${presentationContext.damageFindings.map((f) => `• ${f}`).join("\n")}
+Key agreements Robert has made entering this scene:
+${presentationContext.keyMomentsFromPriorPhases.map((m) => `• ${m}`).join("\n") || "• None"}
+
+Evaluate whether the rep is correctly referencing the actual scenario details. If the rep makes up a finding that wasn't in the inspection, flag it. If the rep correctly anchors back to a real finding, credit it.`
+      : "";
 
   if (drillType === "objection") {
     const coachingStandard =
@@ -162,7 +404,7 @@ The homeowner's surface objection is: "${surfaceObjection ?? scenario.predictedO
 Their real underlying fear is: ${realFear ?? "unstated"}
 Training mode: ${trainingMode.toUpperCase()}
 Experience level: ${levelConfig.label} — ${coachingStandard}
-
+${contextBlock}
 The rep is working through the NEPQ 4-step framework:
 Step 1 — Acknowledge Without Agreeing (one sentence acknowledgment, no counter)
 Step 2 — Diagnose with a Question (ask the diagnostic question before handling anything)
@@ -231,7 +473,7 @@ YOUR COACHING FOCUS THIS LEVEL: ${levelFocus}
 
 KEY BEHAVIORS FOR THIS PHASE (evaluate which ones were demonstrated):
 ${keyBehaviorsList}
-
+${contextBlock}
 NEPQ COACHING PRINCIPLES:
 - The rep should be asking questions, not pitching. Penalize any statement that presents information before the homeowner asked for it.
 - Silence is a technique. If the rep filled silence too quickly, that is a coaching moment.
@@ -293,7 +535,7 @@ Set "phaseComplete": true only when BOTH conditions are met.`
 
 ${phaseContext}
 ${coachingStandard}
-
+${contextBlock}
 EVALUATION MODE: ${modeGuide}
 
 CONVERSATION SO FAR:

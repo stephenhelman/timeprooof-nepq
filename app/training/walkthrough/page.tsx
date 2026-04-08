@@ -15,7 +15,8 @@ import { TIMEPROOF_SEQUENCE, NEPQ_SEQUENCE, TIMEPROOF_PHASES, EXPERIENCE_LEVELS,
 import { transcribeAudio, callClaude, speakText, createSession, saveMessage, completeSession } from "@/lib/api";
 import { homeownerSystemPrompt, coachHintPrompt, debriefPrompt } from "@/lib/prompts";
 import { parseCoachResponse } from "@/lib/stepAdvance";
-import type { TrainingMode, ChatMessage, DebriefResult, DrillScenario, ExperienceLevel } from "@/lib/types";
+import { buildPhaseContext } from "@/lib/buildPhaseContext";
+import type { TrainingMode, ChatMessage, DebriefResult, DrillScenario, ExperienceLevel, PresentationContext } from "@/lib/types";
 import { ChevronDown, ChevronUp, RefreshCw, Type, Mic, Lock, ClipboardList, Check } from "lucide-react";
 import TTSProviderPicker from "@/components/training/TTSProviderPicker";
 
@@ -129,6 +130,9 @@ export default function WalkthroughDrillPage() {
   // NEPQ behaviorsAchieved tracking
   const [behaviorsAchieved, setBehaviorsAchieved] = useState<string[]>([]);
 
+  // Phase presentation context (built at drill start for phase drills)
+  const [activePresentationContext, setActivePresentationContext] = useState<PresentationContext | null>(null);
+
   const sequence = mode === "timeproof" ? TIMEPROOF_SEQUENCE : NEPQ_SEQUENCE;
   const currentPhase = sequence[currentPhaseIndex];
   const userMessageCount = messages.filter((m) => m.role === "user").length;
@@ -160,6 +164,7 @@ export default function WalkthroughDrillPage() {
     setPhaseComplete(false);
     setReviewMode(false);
     setBehaviorsAchieved([]);
+    setActivePresentationContext(null);
 
     // Save scenario to localStorage for reuse across phase drills
     saveScenario(scenario);
@@ -203,6 +208,18 @@ export default function WalkthroughDrillPage() {
       const phaseContext = tpPhase?.robertStartingContext;
       const tpCheckpoints = tpPhase ? getCheckpointsForPhase(tpPhase.id).map((c) => c.label) : undefined;
 
+      // Build full PresentationContext for phase drills
+      let phasePresCtx: PresentationContext | undefined;
+      if (selectedPhaseId) {
+        phasePresCtx = buildPhaseContext({
+          phaseId: selectedPhaseId,
+          trainingMode: mode,
+          scenario,
+          experienceLevel,
+        });
+        setActivePresentationContext(phasePresCtx);
+      }
+
       const system = homeownerSystemPrompt({
         scenario,
         trainingMode: mode,
@@ -213,6 +230,7 @@ export default function WalkthroughDrillPage() {
         phaseContext,
         phaseCheckpoints: tpCheckpoints,
         nepqPhase: nepqSelectedPhase ?? undefined,
+        presentationContext: phasePresCtx,
       });
 
       const openingPrompt = phaseContext
@@ -283,6 +301,7 @@ export default function WalkthroughDrillPage() {
               nepqPhase: nepqSelectedPhase ?? undefined,
               lastUserMessage: userText,
               conversationSoFar: conversationStr,
+              presentationContext: activePresentationContext ?? undefined,
             })
           ).catch(() => ""),
           callClaude(
@@ -299,6 +318,7 @@ export default function WalkthroughDrillPage() {
               phaseContext,
               phaseCheckpoints: tpCheckpoints,
               nepqPhase: nepqSelectedPhase ?? undefined,
+              presentationContext: activePresentationContext ?? undefined,
             })
           ),
         ]);
@@ -375,7 +395,7 @@ export default function WalkthroughDrillPage() {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [sessionId, scenario, messages, mode, currentPhase, currentPhaseIndex, sequence, selectedPhaseId, experienceLevel, phaseComplete]
+    [sessionId, scenario, messages, mode, currentPhase, currentPhaseIndex, sequence, selectedPhaseId, experienceLevel, phaseComplete, activePresentationContext]
   );
 
   async function runDebrief() {
@@ -487,6 +507,7 @@ export default function WalkthroughDrillPage() {
     setBehaviorsAchieved([]);
     setSelectedPreset(null);
     setUnlockModal(null);
+    setActivePresentationContext(null);
   }
 
   const levelConfig = EXPERIENCE_LEVELS.find((l) => l.id === experienceLevel) ?? EXPERIENCE_LEVELS[0];

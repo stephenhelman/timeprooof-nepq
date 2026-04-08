@@ -1,18 +1,27 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import ModeToggle from "@/components/training/ModeToggle";
 import MicButton from "@/components/training/MicButton";
 import ChatTranscript from "@/components/training/ChatTranscript";
 import CoachHint from "@/components/training/CoachHint";
 import DebriefPanel from "@/components/training/DebriefPanel";
 import NEPQStepTracker from "@/components/training/NEPQStepTracker";
-import { OBJECTION_CORES } from "@/lib/constants";
+import { OBJECTION_CORES, OBJECTION_CONTEXT_CARDS } from "@/lib/constants";
+import { generateScenario } from "@/lib/scenarios";
 import { transcribeAudio, callClaude, speakText, createSession, saveMessage, completeSession } from "@/lib/api";
 import { homeownerSystemPrompt, coachHintPrompt, debriefPrompt } from "@/lib/prompts";
 import { parseCoachResponse, computeNextStepState, allStepsComplete } from "@/lib/stepAdvance";
-import type { TrainingMode, Intensity, ChatMessage, DebriefResult, DrillScenario, NEPQStep } from "@/lib/types";
-import { ChevronDown, ChevronUp, Type, Mic } from "lucide-react";
+import type {
+  TrainingMode,
+  Intensity,
+  ChatMessage,
+  DebriefResult,
+  DrillScenario,
+  NEPQStep,
+  PresentationContext,
+} from "@/lib/types";
+import { ChevronDown, ChevronUp, Type, Mic, RefreshCw, Lock } from "lucide-react";
 import TTSProviderPicker from "@/components/training/TTSProviderPicker";
 
 type Screen = "config" | "drill" | "debrief";
@@ -20,29 +29,37 @@ type Screen = "config" | "drill" | "debrief";
 const CORES = ["price", "urgency", "trust"] as const;
 const INTENSITIES: Intensity[] = ["mild", "firm", "hostile"];
 
-// Minimal scenario for objection drills (no roof findings)
-function buildObjectionScenario(coreId: string, variationId: string): DrillScenario {
-  const core = OBJECTION_CORES[coreId];
-  const variation = core.variations.find((v) => v.id === variationId)!;
+interface PresetScenarioItem {
+  id: string;
+  slug: string;
+  tier: number;
+  title: string;
+  subtitle: string;
+  unlocked: boolean;
+  scenarioJson: DrillScenario;
+}
+
+// Build a PresentationContext from a context card + scenario for objection drills
+function buildObjectionContext(
+  contextCardId: string,
+  scenario: DrillScenario | null,
+  objectionTrigger: string,
+): PresentationContext {
+  const card = OBJECTION_CONTEXT_CARDS.find((c) => c.id === contextCardId) ?? OBJECTION_CONTEXT_CARDS[3];
+
   return {
-    homeowner: {
-      name: "Robert",
-      ageRange: "45-55",
-      yearsInHome: 12,
-      familySituation: "Lives with spouse",
-      personality: "no-strong-bias",
-      contractorHistory: "none",
-      howHeardAboutUs: "Door-to-door visit",
-      spousePresent: true,
-    },
-    roof: { age: 14, shingleType: "architectural", severity: "moderate" },
-    findings: [],
-    urgencySummary: "Moderate roof damage requiring attention.",
-    predictedObjection: {
-      core: coreId as "price" | "urgency" | "trust",
-      variation: variation.obj,
-      variationId,
-    },
+    homeownerName: scenario?.homeowner.name ?? "Robert",
+    homeownerPersonality: scenario?.homeowner.personality ?? "no-strong-bias",
+    roofAge: scenario?.roof.age ?? 14,
+    roofSeverity: scenario?.roof.severity ?? "moderate",
+    damageFindings: scenario?.findings.map((f) => f.repNarration) ?? [],
+    urgencySummary: scenario?.urgencySummary ?? "Moderate roof damage requiring attention.",
+    phasesCompleted: card.phasesCompleted,
+    keyMomentsFromPriorPhases: card.keyMoments,
+    robertCurrentMood: card.robertMood,
+    robertExpectation: card.robertExpectation,
+    objectionTrigger,
+    presentationMoment: card.label,
   };
 }
 
@@ -52,6 +69,15 @@ export default function ObjectionDrillPage() {
   const [selectedCore, setSelectedCore] = useState<string>("price");
   const [selectedVariation, setSelectedVariation] = useState<string>("p1");
   const [intensity, setIntensity] = useState<Intensity>("mild");
+  const [contextCardId, setContextCardId] = useState<string>("after-product");
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+
+  // Scenario selection
+  const [presetScenarios, setPresetScenarios] = useState<PresetScenarioItem[]>([]);
+  const [presetsLoading, setPresetsLoading] = useState(true);
+  const [selectedPreset, setSelectedPreset] = useState<PresetScenarioItem | null>(null);
+  const [generatedScenario, setGeneratedScenario] = useState<DrillScenario | null>(null);
+  const [scenarioMode, setScenarioMode] = useState<"preset" | "quick" | "skip">("skip");
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [coachHint, setCoachHint] = useState<string | null>(null);
@@ -66,16 +92,61 @@ export default function ObjectionDrillPage() {
   const [debrief, setDebrief] = useState<DebriefResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const scenario = buildObjectionScenario(selectedCore, selectedVariation);
+  // Active drill state (captured at drill start)
+  const [activeScenario, setActiveScenario] = useState<DrillScenario | null>(null);
+  const [activeContext, setActiveContext] = useState<PresentationContext | null>(null);
+
+  // Load presets
+  useEffect(() => {
+    fetch("/api/training/scenarios")
+      .then((r) => r.json())
+      .then((d: { scenarios: PresetScenarioItem[] }) => {
+        setPresetScenarios(d.scenarios ?? []);
+        setPresetsLoading(false);
+      })
+      .catch(() => setPresetsLoading(false));
+  }, []);
+
   const core = OBJECTION_CORES[selectedCore];
   const variation = core.variations.find((v) => v.id === selectedVariation)!;
   const handlers = core.handlers[selectedVariation] ?? [];
+  const selectedContextCard = OBJECTION_CONTEXT_CARDS.find((c) => c.id === contextCardId) ?? OBJECTION_CONTEXT_CARDS[3];
+
+  // The scenario used for the drill
+  const drillScenario =
+    scenarioMode === "preset" && selectedPreset
+      ? selectedPreset.scenarioJson
+      : scenarioMode === "quick" && generatedScenario
+      ? generatedScenario
+      : null;
 
   const userMessageCount = messages.filter((m) => m.role === "user").length;
   const canDebrief = userMessageCount >= 4;
 
+  function handleQuickGenerate() {
+    // Weight personality by selected objection core
+    const personalityWeights: Record<string, string[]> = {
+      price: ["price-sensitive"],
+      trust: ["prior-bad-experience", "skeptical"],
+      urgency: ["no-strong-bias", "trusting"],
+    };
+    const _ = personalityWeights[selectedCore]; void _;
+
+    const generated = generateScenario();
+    setGeneratedScenario(generated);
+    setScenarioMode("quick");
+    setSelectedPreset(null);
+  }
+
   async function startDrill() {
     setError(null);
+    const scenario = drillScenario;
+    const ctx = buildObjectionContext(
+      contextCardId,
+      scenario,
+      selectedContextCard.objectionTrigger,
+    );
+
     try {
       const id = await createSession({
         drillType: "objection",
@@ -83,8 +154,13 @@ export default function ObjectionDrillPage() {
         objectionCore: selectedCore,
         objectionVariation: selectedVariation,
         intensity,
-      });
+        scenarioJson: scenario ?? undefined,
+        presetScenarioId: selectedPreset?.id ?? undefined,
+        presetScenarioSlug: selectedPreset?.slug ?? undefined,
+      } as Parameters<typeof createSession>[0]);
       setSessionId(id);
+      setActiveScenario(scenario);
+      setActiveContext(ctx);
       setMessages([]);
       setCoachHint(null);
       setCurrentStep(1);
@@ -92,14 +168,36 @@ export default function ObjectionDrillPage() {
       setLastHint(undefined);
       setScreen("drill");
 
-      // Opening homeowner message
+      // Build a minimal scenario if none selected (for prompt compatibility)
+      const promptScenario: DrillScenario = scenario ?? {
+        homeowner: {
+          name: ctx.homeownerName,
+          ageRange: "45-55",
+          yearsInHome: 12,
+          familySituation: selectedContextCard.phasesCompleted.length > 0 ? "Seated at kitchen table with rep" : "Opened door to rep",
+          personality: "no-strong-bias",
+          contractorHistory: "none",
+          howHeardAboutUs: "Door-to-door visit",
+          spousePresent: false,
+        },
+        roof: { age: 14, shingleType: "architectural", severity: "moderate" },
+        findings: [],
+        urgencySummary: "Moderate roof damage requiring attention.",
+        predictedObjection: {
+          core: selectedCore as "price" | "urgency" | "trust",
+          variation: variation.obj,
+          variationId: selectedVariation,
+        },
+      };
+
       const system = homeownerSystemPrompt({
-        scenario,
+        scenario: promptScenario,
         trainingMode: mode,
         drillType: "objection",
         intensity,
         surfaceObjection: variation.obj,
         realFear: variation.realFear,
+        presentationContext: ctx,
       });
 
       const opening = await callClaude(
@@ -130,21 +228,42 @@ export default function ObjectionDrillPage() {
 
       setMicState("processing");
 
+      const promptScenario: DrillScenario = activeScenario ?? {
+        homeowner: {
+          name: activeContext?.homeownerName ?? "Robert",
+          ageRange: "45-55",
+          yearsInHome: 12,
+          familySituation: "Seated at kitchen table with rep",
+          personality: "no-strong-bias",
+          contractorHistory: "none",
+          howHeardAboutUs: "Door-to-door visit",
+          spousePresent: false,
+        },
+        roof: { age: 14, shingleType: "architectural", severity: "moderate" },
+        findings: [],
+        urgencySummary: "Moderate roof damage requiring attention.",
+        predictedObjection: {
+          core: selectedCore as "price" | "urgency" | "trust",
+          variation: variation.obj,
+          variationId: selectedVariation,
+        },
+      };
+
       try {
-        // Get coach hint
         const conversationStr = updatedMessages
           .filter((m) => m.role !== "coach")
           .map((m) => `${m.role === "user" ? "Rep" : "Homeowner"}: ${m.content}`)
           .join("\n");
 
         const coachSystem = coachHintPrompt({
-          scenario,
+          scenario: promptScenario,
           trainingMode: mode,
           drillType: "objection",
           lastUserMessage: userText,
           conversationSoFar: conversationStr,
           surfaceObjection: variation.obj,
           realFear: variation.realFear,
+          presentationContext: activeContext ?? undefined,
         });
 
         const [rawCoach, responseText] = await Promise.all([
@@ -155,12 +274,13 @@ export default function ObjectionDrillPage() {
               content: m.content,
             })),
             homeownerSystemPrompt({
-              scenario,
+              scenario: promptScenario,
               trainingMode: mode,
               drillType: "objection",
               intensity,
               surfaceObjection: variation.obj,
               realFear: variation.realFear,
+              presentationContext: activeContext ?? undefined,
             })
           ),
         ]);
@@ -191,13 +311,34 @@ export default function ObjectionDrillPage() {
         setError("Something went wrong. Check your connection and try again.");
       }
     },
-    [sessionId, messages, scenario, mode, intensity, variation, currentStep, completedSteps]
+    [sessionId, messages, activeScenario, activeContext, mode, intensity, variation, selectedCore, selectedVariation, currentStep, completedSteps]
   );
 
   async function handleDebrief() {
     if (!sessionId) return;
     setMicState("processing");
     setError(null);
+
+    const promptScenario: DrillScenario = activeScenario ?? {
+      homeowner: {
+        name: activeContext?.homeownerName ?? "Robert",
+        ageRange: "45-55",
+        yearsInHome: 12,
+        familySituation: "Seated at kitchen table",
+        personality: "no-strong-bias",
+        contractorHistory: "none",
+        howHeardAboutUs: "Door-to-door visit",
+        spousePresent: false,
+      },
+      roof: { age: 14, shingleType: "architectural", severity: "moderate" },
+      findings: [],
+      urgencySummary: "Moderate roof damage.",
+      predictedObjection: {
+        core: selectedCore as "price" | "urgency" | "trust",
+        variation: variation.obj,
+        variationId: selectedVariation,
+      },
+    };
 
     try {
       const transcriptStr = messages
@@ -206,7 +347,7 @@ export default function ObjectionDrillPage() {
         .join("\n");
 
       const system = debriefPrompt({
-        scenario,
+        scenario: promptScenario,
         trainingMode: mode,
         drillType: "objection",
         transcript: transcriptStr,
@@ -249,6 +390,8 @@ export default function ObjectionDrillPage() {
 
   // ── Config Screen ─────────────────────────────────────────────────────────
   if (screen === "config") {
+    const CORE_COLORS: Record<string, string> = { price: "#A32D2D", urgency: "#b45309", trust: "#1d4ed8" };
+
     return (
       <div className="space-y-6 max-w-2xl mx-auto">
         <div className="flex items-center justify-between">
@@ -344,6 +487,161 @@ export default function ObjectionDrillPage() {
           </div>
         </div>
 
+        {/* Context Card Selector */}
+        <div className="space-y-3">
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+              Presentation Context
+            </p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Where in the presentation did this objection come up?
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {OBJECTION_CONTEXT_CARDS.map((card) => {
+              const isSelected = contextCardId === card.id;
+              const isNatural = card.naturalObjectionCores.includes(selectedCore);
+              const isExpanded = expandedCard === card.id;
+
+              return (
+                <div key={card.id} className="flex flex-col">
+                  <button
+                    onClick={() => {
+                      setContextCardId(card.id);
+                      setExpandedCard(isSelected && isExpanded ? null : card.id);
+                    }}
+                    className={`w-full text-left p-3 rounded-xl border-2 transition-all ${
+                      isSelected
+                        ? "border-blue-600 bg-blue-900/20"
+                        : isNatural
+                        ? "border-gray-600 bg-gray-800/60"
+                        : "border-gray-800 bg-gray-900/40 opacity-70"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-white leading-tight">{card.label}</p>
+                        <p className="text-xs text-gray-400 mt-0.5 leading-tight">{card.subtitle}</p>
+                      </div>
+                      <div className="flex gap-1 shrink-0 flex-wrap justify-end">
+                        {card.naturalObjectionCores.map((c) => (
+                          <span
+                            key={c}
+                            className="text-xs px-1.5 py-0.5 rounded font-medium"
+                            style={{
+                              backgroundColor: `${CORE_COLORS[c] ?? "#6b7280"}20`,
+                              color: CORE_COLORS[c] ?? "#9ca3af",
+                            }}
+                          >
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    {isSelected && (
+                      <p className="text-xs text-gray-300 mt-2 leading-relaxed">{card.description}</p>
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Scenario Selector */}
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Scenario</p>
+
+          {/* Scenario mode tabs */}
+          <div className="flex gap-2">
+            {(["preset", "quick", "skip"] as const).map((sm) => (
+              <button
+                key={sm}
+                onClick={() => {
+                  setScenarioMode(sm);
+                  if (sm !== "preset") setSelectedPreset(null);
+                  if (sm !== "quick") setGeneratedScenario(null);
+                }}
+                className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
+                  scenarioMode === sm
+                    ? "bg-gray-600 text-white"
+                    : "bg-gray-800 text-gray-400 hover:text-white"
+                }`}
+              >
+                {sm === "preset" ? "Preset Scenario" : sm === "quick" ? "Quick Generate" : "Context Only"}
+              </button>
+            ))}
+          </div>
+
+          {/* Preset list */}
+          {scenarioMode === "preset" && (
+            <div className="space-y-1.5">
+              {presetsLoading ? (
+                <div className="h-16 bg-gray-800 rounded-xl animate-pulse" />
+              ) : (
+                presetScenarios.map((p) => {
+                  if (!p.unlocked) {
+                    return (
+                      <div key={p.slug} className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-800 bg-gray-900/40 opacity-50">
+                        <Lock className="w-3 h-3 text-gray-600" />
+                        <span className="text-xs text-gray-500">{p.title}</span>
+                      </div>
+                    );
+                  }
+                  const isSelected = selectedPreset?.slug === p.slug;
+                  return (
+                    <button
+                      key={p.slug}
+                      onClick={() => setSelectedPreset(isSelected ? null : p)}
+                      className={`w-full text-left px-3 py-2.5 rounded-xl border transition-colors ${
+                        isSelected
+                          ? "border-amber-500 bg-amber-500/10"
+                          : "border-gray-700 bg-gray-800/50 hover:border-gray-600"
+                      }`}
+                    >
+                      <p className="text-sm font-medium text-white">{p.title}</p>
+                      <p className="text-xs text-gray-400">{p.subtitle}</p>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          )}
+
+          {/* Quick generate */}
+          {scenarioMode === "quick" && (
+            <div className="space-y-2">
+              <button
+                onClick={handleQuickGenerate}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                {generatedScenario ? "Regenerate" : "Quick Generate"}
+              </button>
+              {generatedScenario && (
+                <div className="rounded-xl border border-gray-700 bg-gray-800/50 p-3">
+                  <p className="text-sm font-medium text-white">{generatedScenario.homeowner.name}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {generatedScenario.roof.severity} damage · {generatedScenario.homeowner.personality}
+                  </p>
+                  {generatedScenario.findings.length > 0 && (
+                    <p className="text-xs text-gray-500 mt-1 truncate">
+                      {generatedScenario.findings.map((f) => f.category).join(", ")}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Context only */}
+          {scenarioMode === "skip" && (
+            <p className="text-xs text-gray-500">
+              Robert has no specific damage details — context card sets his history and mood.
+            </p>
+          )}
+        </div>
+
         <button
           onClick={startDrill}
           className="w-full py-4 rounded-xl font-bold text-base transition-opacity hover:opacity-90"
@@ -375,6 +673,8 @@ export default function ObjectionDrillPage() {
             setMessages([]);
             setDebrief(null);
             setSessionId(null);
+            setActiveScenario(null);
+            setActiveContext(null);
           }}
         />
       </div>
@@ -394,6 +694,9 @@ export default function ObjectionDrillPage() {
             {core.label}
           </span>
           <span className="text-xs text-gray-400">{variation.obj}</span>
+          {selectedContextCard && (
+            <span className="text-xs text-gray-500">· {selectedContextCard.label}</span>
+          )}
         </div>
         <ModeToggle mode={mode} onChange={setMode} drillActive />
       </div>

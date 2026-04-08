@@ -178,6 +178,179 @@ export interface NEPQPhaseDefinition {
   vetFocus: string;
 }
 
+// ── Objection Context Cards ───────────────────────────────────────────────────
+
+export interface ObjectionContextCard {
+  id: string;
+  label: string;
+  subtitle: string;
+  description: string;
+  phasesCompleted: string[];
+  keyMoments: string[];
+  robertMood: string;
+  robertExpectation: string;
+  naturalObjectionCores: string[];
+  objectionTrigger: string;
+}
+
+export const OBJECTION_CONTEXT_CARDS: ObjectionContextCard[] = [
+  {
+    id: "at-the-door",
+    label: "At the Door",
+    subtitle: "Objection before the presentation even starts",
+    description:
+      "You just knocked. The homeowner opened the door but is already resistant — they don't want to let you in. This tests your ability to disarm resistance before a single product word is spoken.",
+    phasesCompleted: [],
+    keyMoments: [
+      "Rep has not yet been invited inside",
+      "No warm-up has occurred",
+      "Homeowner has not confirmed they are the decision maker",
+    ],
+    robertMood:
+      "Guarded and slightly annoyed — he was in the middle of something and a salesperson is at his door.",
+    robertExpectation: "Another pushy sales pitch he will have to get rid of.",
+    naturalObjectionCores: ["trust", "urgency"],
+    objectionTrigger:
+      "The homeowner does not see why he should spend time on this right now.",
+  },
+  {
+    id: "after-reveal",
+    label: "After the Reveal",
+    subtitle: "Seen the damage photos — hasn't heard the company story yet",
+    description:
+      "The inspection is done and the photos have been shown. The homeowner has seen the damage and is processing it. The objection surfaces before the company story and product presentation.",
+    phasesCompleted: [
+      "Entry & warm-up completed",
+      "Needs assessment completed — rep knows homeowner's concerns",
+      "Inspection completed — rep found specific damage",
+      "Reveal completed — homeowner has seen the photos",
+    ],
+    keyMoments: [
+      "Homeowner acknowledged the damage in the photos looks significant",
+      "Homeowner expressed concern about one specific finding",
+      "Rep has not yet presented the company story",
+      "Homeowner does not yet know who TimeProof is",
+    ],
+    robertMood:
+      "Unsettled from the photos but not yet sure if he trusts the company enough to move forward.",
+    robertExpectation:
+      "The rep is about to try to sell him something based on scary-looking photos.",
+    naturalObjectionCores: ["trust", "urgency"],
+    objectionTrigger:
+      "The homeowner is not sure if the damage is as serious as the rep is making it seem, or if this company is legitimate.",
+  },
+  {
+    id: "after-company-story",
+    label: "After the Company Story",
+    subtitle: "Trust established — hasn't seen the product yet",
+    description:
+      "The full company story through Slide 12 has been delivered. The homeowner said they feel they can trust TimeProof. The objection surfaces before the roof in a bag presentation.",
+    phasesCompleted: [
+      "Entry & warm-up completed",
+      "Needs assessment completed",
+      "Inspection and reveal completed",
+      "Full company story completed through Slide 12",
+      'Company tie-down completed — homeowner said "I think so" to trusting TimeProof',
+    ],
+    keyMoments: [
+      "Homeowner agreed that their home is one of their most valuable investments",
+      "Homeowner agreed that educated consumers don't get three estimates anymore",
+      "Homeowner confirmed they feel they can trust TimeProof",
+      "Rep has not yet shown the product or discussed price",
+    ],
+    robertMood:
+      "Engaged but starting to wonder when the price conversation is coming.",
+    robertExpectation:
+      "He's about to be shown the product and then hear a number.",
+    naturalObjectionCores: ["urgency", "price"],
+    objectionTrigger:
+      "The homeowner is warming up but wants to know the bottom line before investing more time.",
+  },
+  {
+    id: "after-product",
+    label: "After the Product Presentation",
+    subtitle: "Full roof in a bag done — hearing price for the first time",
+    description:
+      "The complete product presentation has been delivered — all components, TIME LOCK system, 3 P's, installers, preferred contractor, and warranties. The rep is about to show the estimate for the first time.",
+    phasesCompleted: [
+      "Entry & warm-up completed",
+      "Needs assessment completed",
+      "Inspection and reveal completed",
+      "Full company story and tie-down completed",
+      "Full product presentation completed — all 8 components, TIME LOCK, SureNail, 3 P's",
+      "Preferred Contractor status explained",
+      "Platinum warranty presented — homeowner expressed interest in 10-year install warranty",
+      "Respect for property and what to expect explained",
+    ],
+    keyMoments: [
+      "Homeowner held the samples and engaged with the materials",
+      "Homeowner said the 10-year installation warranty is important to them",
+      "Homeowner agreed that quality matters more than the cheapest option",
+      "Pre-close completed — homeowner said only affordability remains as a concern",
+      "Value confirmation completed — homeowner confirmed this is the right solution",
+    ],
+    robertMood:
+      "Impressed with the product quality and trusts the company. Bracing for the price.",
+    robertExpectation:
+      "He is about to see a number that is probably higher than he hoped.",
+    naturalObjectionCores: ["price"],
+    objectionTrigger:
+      "The estimate is on the table and it is more than the homeowner budgeted for.",
+  },
+  {
+    id: "after-first-discount",
+    label: "Mid-Discount Sequence",
+    subtitle: "National promotion applied — still not landing",
+    description:
+      "The retail price was shown, the national promotion (5%) has been applied, and the homeowner is still resistant. The rep needs to work through the remainder of the discount sequence while handling the objection.",
+    phasesCompleted: [
+      "Full presentation completed through pre-close",
+      "Estimate shown at retail",
+      "Financing transition delivered",
+      "National Promotion (5%) applied and shown",
+    ],
+    keyMoments: [
+      "Homeowner saw retail price and reacted negatively",
+      "Financing was introduced as a smart financial tool — homeowner is considering it",
+      "First discount applied — homeowner acknowledged it helps but is still not there",
+      "Rep still has Local Promotion (10%) and FSP (10%) available",
+    ],
+    robertMood:
+      "Engaged but firm on price. Not hostile — just hasn't seen a number that works yet.",
+    robertExpectation:
+      "He wants to see if the rep can get the price to where it needs to be.",
+    naturalObjectionCores: ["price"],
+    objectionTrigger:
+      "The monthly payment after the first discount is still above what the homeowner had in mind.",
+  },
+  {
+    id: "return-visit",
+    label: "Return Visit",
+    subtitle: "Rep came back — homeowner has had time to think and cooled off",
+    description:
+      "The rep presented everything on the first visit. The homeowner said they needed to think about it. This is a second visit — the homeowner has had 24-48 hours and their enthusiasm has cooled. The rep must re-establish momentum without repeating the whole presentation.",
+    phasesCompleted: [
+      "Full presentation completed on prior visit",
+      "Homeowner saw estimate and said they needed to think about it",
+      "Rep followed up and scheduled this return visit",
+    ],
+    keyMoments: [
+      "Homeowner has already seen the full presentation and damage photos",
+      "Homeowner already agreed to value and quality on prior visit",
+      "Time has passed — emotional urgency from the reveal has faded",
+      "Spouse may have raised concerns since the first visit",
+      "Homeowner may have looked up competitors online since the first visit",
+    ],
+    robertMood:
+      "Cooler than last visit. He has been thinking about it and may have talked to his wife or looked up other options. He is not re-sold yet.",
+    robertExpectation:
+      "The rep is going to try to close him again. He is ready to ask harder questions this time.",
+    naturalObjectionCores: ["price", "trust", "urgency"],
+    objectionTrigger:
+      "The homeowner had time to think and is now less certain than he was during the presentation.",
+  },
+];
+
 export const OBJECTION_CORES: Record<string, CoreObjectionData> = {
   price: {
     label: "Price",
